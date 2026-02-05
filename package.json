@@ -12,7 +12,11 @@
     "build:release": "cd apps/orchestrator && bun run build:release",
     "dev": "cd apps/orchestrator && bun run dev",
     "dev:ui": "cd packages/orchestrator-ui && bun run dev",
-    "clean": "rm -rf apps/orchestrator/dist packages/orchestrator-ui/dist node_modules"
+    "clean": "rm -rf apps/orchestrator/dist packages/orchestrator-ui/dist node_modules",
+    "test": "bun test",
+    "test:orchestrator": "cd apps/orchestrator && bun test",
+    "test:ui": "cd packages/orchestrator-ui && bun test",
+    "test:watch": "bun test --watch"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

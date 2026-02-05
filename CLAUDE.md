@@ -203,6 +203,8 @@ After every UI or hook code change, run this sequence:
 bun run build:release
 
 # 2. Replace the installed binary (MANDATORY!)
+# IMPORTANT: Must use rm -f before cp! Direct cp causes UE state issues on macOS.
+rm -f ~/.local/bin/claude-maestro
 cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
 chmod +x ~/.local/bin/claude-maestro
 
@@ -211,6 +213,7 @@ pkill -f "stop-server" 2>/dev/null || true
 ```
 
 **⚠️ DO NOT skip step 2!** Without replacing the binary, you will test the OLD version.
+**⚠️ CRITICAL: Always use `rm -f` before `cp`!** Overwriting in place causes macOS to cache old binary state, resulting in UE (uninterruptible sleep) zombie processes.
 
 ### Testing Commands
 
@@ -243,8 +246,10 @@ They cannot be killed - require system reboot or replacing the binary at `~/.loc
 # Check for zombies
 ps aux | grep claude-maestro | grep UE
 
-# Replace binary to prevent new zombies
+# Replace binary to prevent new zombies (MUST use rm -f before cp!)
+rm -f ~/.local/bin/claude-maestro
 cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
+chmod +x ~/.local/bin/claude-maestro
 ```
 
 ---
@@ -286,6 +291,7 @@ Mock API responses by modifying fetch calls in `packages/ui/src/api.ts` or runni
 **Causes**:
 1. Old corrupted binary at `~/.local/bin/claude-maestro`
 2. Zombie processes from previous runs blocking new ones
+3. **Most common**: Using `cp` to overwrite binary in place instead of `rm -f` then `cp` - macOS caches binary state
 
 **Solution**:
 ```bash

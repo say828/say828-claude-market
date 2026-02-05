@@ -1,6 +1,9 @@
 #!/usr/bin/env bun
 import type { Server } from 'bun';
 import { spawn, spawnSync } from 'child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 
 // @ts-ignore - Import embedded HTML at build time
 import html from '../dist/ui.html' with { type: 'text' };
@@ -227,7 +230,7 @@ function parseContext(hookInput: HookInput, interactionType: InteractionType): C
       let plan = '';
       if (planPath) {
         try {
-          plan = require('fs').readFileSync(planPath, 'utf-8');
+          plan = fs.readFileSync(planPath, 'utf-8');
         } catch {
           plan = '(Could not read plan file)';
         }
@@ -272,44 +275,40 @@ function parseContext(hookInput: HookInput, interactionType: InteractionType): C
       };
     }
 
-    case 'stop':
-    case 'stop-server': {
-      // Read transcript if available
-      let transcript: string | undefined;
-      if (hookInput.transcript_path) {
-        try {
-          transcript = require('fs').readFileSync(hookInput.transcript_path, 'utf-8');
-        } catch {
-          transcript = undefined;
-        }
-      }
+    case 'stop': {
+      // For main process, don't read transcript - just pass path
+      // Transcript will be read by background server
       return {
         type: 'stop',
         reason: hookInput.stop_hook_reason || 'Task completed',
         sessionId: hookInput.session_id,
         cwd: hookInput.cwd,
         summary: (toolInput as any).summary,
-        transcript
+        transcriptPath: hookInput.transcript_path
+      };
+    }
+
+    case 'stop-server': {
+      // Background server: use pre-parsed transcript from runStopServer
+      return {
+        type: 'stop',
+        reason: hookInput.stop_hook_reason || 'Task completed',
+        sessionId: hookInput.session_id,
+        cwd: hookInput.cwd,
+        summary: (toolInput as any).summary,
+        transcript: (hookInput as any)._parsedTranscript
       };
     }
 
     case 'subagent-stop': {
-      // Read transcript if available
-      let transcript: string | undefined;
-      if (hookInput.transcript_path) {
-        try {
-          transcript = require('fs').readFileSync(hookInput.transcript_path, 'utf-8');
-        } catch {
-          transcript = undefined;
-        }
-      }
+      // Don't read transcript in main process - pass path only
       return {
         type: 'subagent-stop',
         subagentName: (toolInput as any).subagent_name || hookInput.tool_name || 'Subagent',
         result: (toolInput as any).result || hookInput.tool_output,
         sessionId: hookInput.session_id,
         cwd: hookInput.cwd,
-        transcript
+        transcriptPath: hookInput.transcript_path
       };
     }
 
@@ -490,12 +489,38 @@ async function runStopServer(hookInput: HookInput): Promise<void> {
   // Debug: log hook input to file
   try {
     const debugPath = '/tmp/maestro-debug-hook-input.json';
-    require('fs').writeFileSync(debugPath, JSON.stringify(hookInput, null, 2));
+    fs.writeFileSync(debugPath, JSON.stringify(hookInput, null, 2));
   } catch {}
 
+  // Read transcript using sync fs
+  let parsedTranscript: string | undefined;
+  if (hookInput.transcript_path) {
+    try {
+      const rawContent = fs.readFileSync(hookInput.transcript_path, 'utf-8');
+      const allLines = rawContent.split('\n').filter((line: string) => line.trim());
+      const lines = allLines.slice(-200);
+      const messages: any[] = [];
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj.type === 'user' && obj.message) {
+            messages.push({ role: 'user', content: obj.message.content });
+          } else if (obj.type === 'assistant' && obj.message) {
+            messages.push({ role: 'assistant', content: obj.message.content });
+          }
+        } catch {}
+      }
+      parsedTranscript = JSON.stringify(messages.slice(-50));
+    } catch (err: any) {
+    }
+  }
+
+  // Add parsed transcript to hook input for stop-server context
+  const enrichedHookInput = { ...hookInput, _parsedTranscript: parsedTranscript };
+
   await createServer({
-    interactionType: isSubagent ? 'subagent-stop' : 'stop',
-    hookInput,
+    interactionType: isSubagent ? 'subagent-stop' : 'stop-server',
+    hookInput: enrichedHookInput,
 
     onApprove: () => {},
     onDeny: () => {},
@@ -538,7 +563,6 @@ function readInput(): HookInput {
 
     // Try to read from stdin, handle both piped and TTY cases
     try {
-      const fs = require('fs');
       // Check if stdin is a TTY (interactive) or pipe
       if (process.stdin.isTTY) {
         return {} as HookInput;
@@ -551,7 +575,7 @@ function readInput(): HookInput {
       }
     } catch (e) {
       // If readSync fails, try alternative method
-      const input = require('fs').readFileSync(fd, 'utf-8');
+      const input = fs.readFileSync(fd, 'utf-8');
       if (!input.trim()) {
         return {} as HookInput;
       }
@@ -616,22 +640,20 @@ function buildQuestionResponse(answers: Record<string, string | string[]>): Hook
 
 async function main(): Promise<void> {
   const interactionType = getInteractionType();
-  const fs = require('fs');
-  const os = require('os');
-  const path = require('path');
 
   // All modes: read from file if path provided, otherwise stdin
-  // This avoids stdin issues in Bun compiled binaries
+  // Use Bun native API to avoid UE state in compiled binaries
   const inputFile = process.argv[3]; // Optional: temp file path
   let hookInput: HookInput;
 
-  if (inputFile && fs.existsSync(inputFile)) {
+  if (inputFile) {
     try {
+      // Use sync fs.readFileSync instead of Bun.file to avoid potential issues
       const content = fs.readFileSync(inputFile, 'utf-8');
       hookInput = JSON.parse(content);
-      fs.unlinkSync(inputFile); // Clean up temp file
-    } catch (err) {
-      console.error('Failed to read hook input from file:', err);
+      // Clean up temp file
+      try { fs.unlinkSync(inputFile); } catch {}
+    } catch (err: any) {
       hookInput = {} as HookInput;
     }
   } else {
@@ -653,7 +675,6 @@ async function main(): Promise<void> {
     fs.writeFileSync(tempFile, JSON.stringify(hookInput));
 
     // Spawn background server process
-    // For compiled Bun binary: process.execPath IS the binary, just pass args directly
     const child = spawn(process.execPath, ['stop-server', tempFile], {
       detached: true,
       stdio: 'ignore'

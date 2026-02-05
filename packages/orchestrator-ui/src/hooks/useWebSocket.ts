@@ -34,7 +34,25 @@ export function useWebSocket({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const connect = useCallback(() => {
+  // Use refs for callbacks to avoid reconnection on callback changes
+  const enabledHooksRef = useRef(enabledHooks);
+  const onHookAlertRef = useRef(onHookAlert);
+  const onWebSessionMessageRef = useRef(onWebSessionMessage);
+
+  // Update refs when props change
+  useEffect(() => {
+    enabledHooksRef.current = enabledHooks;
+  }, [enabledHooks]);
+
+  useEffect(() => {
+    onHookAlertRef.current = onHookAlert;
+  }, [onHookAlert]);
+
+  useEffect(() => {
+    onWebSessionMessageRef.current = onWebSessionMessage;
+  }, [onWebSessionMessage]);
+
+  useEffect(() => {
     // Determine WebSocket URL
     let wsUrl: string;
     if (serverUrl) {
@@ -46,72 +64,78 @@ export function useWebSocket({
       wsUrl = `${protocol}//${window.location.host}/ws`;
     }
 
-    const ws = new WebSocket(wsUrl);
+    let isMounted = true;
 
-    ws.onopen = () => {
-      setConnected(true);
-    };
+    const connect = () => {
+      if (!isMounted) return;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      const ws = new WebSocket(wsUrl);
 
-        switch (data.type) {
-          case WS_EVENTS.init:
-          case WS_EVENTS.sessionsUpdate: {
-            const payload = data.type === WS_EVENTS.init ? data.data : { sessions: data.data };
-            setSessions(payload.sessions || data.data);
-            if (payload.stats) {
-              setStats(payload.stats);
+      ws.onopen = () => {
+        if (isMounted) setConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        if (!isMounted) return;
+        try {
+          const data = JSON.parse(event.data);
+
+          switch (data.type) {
+            case WS_EVENTS.init:
+            case WS_EVENTS.sessionsUpdate: {
+              const payload = data.type === WS_EVENTS.init ? data.data : { sessions: data.data };
+              setSessions(payload.sessions || data.data);
+              if (payload.stats) {
+                setStats(payload.stats);
+              }
+              break;
             }
-            break;
-          }
 
-          case WS_EVENTS.hookAlert: {
-            const alert: HookAlert = { ...data.data, receivedAt: Date.now() };
-            if (enabledHooks[alert.hook.type as keyof typeof enabledHooks]) {
-              onHookAlert?.(alert);
+            case WS_EVENTS.hookAlert: {
+              const alert: HookAlert = { ...data.data, receivedAt: Date.now() };
+              if (enabledHooksRef.current[alert.hook.type as keyof typeof enabledHooksRef.current]) {
+                onHookAlertRef.current?.(alert);
+              }
+              break;
             }
-            break;
-          }
 
-          case WS_EVENTS.webSession: {
-            const sessionId = data.sessionId;
-            const msg = data.data as WebSessionMessage;
-            onWebSessionMessage?.(sessionId, msg);
-            break;
+            case WS_EVENTS.webSession: {
+              const sessionId = data.sessionId;
+              const msg = data.data as WebSessionMessage;
+              onWebSessionMessageRef.current?.(sessionId, msg);
+              break;
+            }
           }
+        } catch (err) {
+          console.error('WebSocket message error:', err);
         }
-      } catch (err) {
-        console.error('WebSocket message error:', err);
-      }
+      };
+
+      ws.onclose = () => {
+        if (isMounted) {
+          setConnected(false);
+          // Reconnect after delay
+          reconnectTimeoutRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      wsRef.current = ws;
     };
 
-    ws.onclose = () => {
-      setConnected(false);
-      // Reconnect after delay
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
-      }, RECONNECT_DELAY_MS);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    wsRef.current = ws;
-  }, [serverUrl, enabledHooks, onHookAlert, onWebSessionMessage]);
-
-  useEffect(() => {
     connect();
 
     return () => {
+      isMounted = false;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
       wsRef.current?.close();
     };
-  }, [connect]);
+  }, [serverUrl]); // Only reconnect when serverUrl changes
 
   const subscribeToWebSession = useCallback((sessionId: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

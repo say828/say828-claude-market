@@ -181,6 +181,43 @@ Remote mode is detected via:
 
 When remote, uses fixed port 18765 for SSH port forwarding and prints URL instead of opening browser.
 
+## Required Testing Before Release
+
+**IMPORTANT: Every code change MUST go through all three testing phases:**
+
+### 1. Build Test
+```bash
+bun run build
+```
+Verify build completes without errors.
+
+### 2. Local Binary Test
+Test the built binary directly without installing:
+```bash
+# Test bash hook
+echo '{"session_id":"test","cwd":"'$(pwd)'","tool_input":{"command":"ls -la"}}' | ./apps/hook/dist/index.js bash
+
+# Test stop hook
+echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Task completed"}' | ./apps/hook/dist/index.js stop
+```
+
+### 3. Install & Test
+After releasing, install from marketplace and test in a real Claude Code session:
+```bash
+# Update marketplace
+/plugin marketplace update yourturn
+
+# Reinstall plugin
+/plugin uninstall yourturn@yourturn
+/plugin install yourturn@yourturn
+
+# Test in real session - trigger each hook type
+```
+
+**DO NOT release without completing all three testing phases.**
+
+---
+
 ## Development Tips
 
 ### Adding a New Interaction Type

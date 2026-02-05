@@ -1,7 +1,7 @@
 {
   "name": "claude-maestro",
   "description": "Browser-based human-in-the-loop UI for Claude Code - handles plan approval, bash commands, file edits, and questions",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "author": {
     "name": "say828"
   },

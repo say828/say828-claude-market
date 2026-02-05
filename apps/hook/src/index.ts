@@ -512,10 +512,40 @@ async function runStopServer(hookInput: HookInput): Promise<void> {
 // ============================================================================
 
 function readInput(): HookInput {
-  // Synchronous stdin read - Claude Code sends data immediately
-  const fs = require('fs');
+  // Read all available data from stdin synchronously
+  // Works in both Bun runtime and compiled binary
   try {
-    const input = fs.readFileSync(0, 'utf-8');
+    const chunks: Buffer[] = [];
+    const fd = 0; // stdin
+    const buf = Buffer.alloc(65536);
+
+    // Try to read from stdin, handle both piped and TTY cases
+    try {
+      const fs = require('fs');
+      // Check if stdin is a TTY (interactive) or pipe
+      if (process.stdin.isTTY) {
+        return {} as HookInput;
+      }
+
+      // Read synchronously from file descriptor
+      let bytesRead: number;
+      while ((bytesRead = fs.readSync(fd, buf, 0, buf.length, null)) > 0) {
+        chunks.push(Buffer.from(buf.subarray(0, bytesRead)));
+      }
+    } catch (e) {
+      // If readSync fails, try alternative method
+      const input = require('fs').readFileSync(fd, 'utf-8');
+      if (!input.trim()) {
+        return {} as HookInput;
+      }
+      return JSON.parse(input);
+    }
+
+    if (chunks.length === 0) {
+      return {} as HookInput;
+    }
+
+    const input = Buffer.concat(chunks).toString('utf-8');
     if (!input.trim()) {
       return {} as HookInput;
     }
@@ -573,25 +603,31 @@ async function main(): Promise<void> {
   const os = require('os');
   const path = require('path');
 
-  // Background server mode (internal) - read from temp file
-  if (interactionType === 'stop-server') {
-    const inputFile = process.argv[3]; // Third arg is temp file path
-    if (inputFile && fs.existsSync(inputFile)) {
-      try {
-        const content = fs.readFileSync(inputFile, 'utf-8');
-        const hookInput = JSON.parse(content);
-        fs.unlinkSync(inputFile); // Clean up temp file
-        await runStopServer(hookInput);
-      } catch (err) {
-        console.error('Failed to read hook input:', err);
-      }
+  // All modes: read from file if path provided, otherwise stdin
+  // This avoids stdin issues in Bun compiled binaries
+  const inputFile = process.argv[3]; // Optional: temp file path
+  let hookInput: HookInput;
+
+  if (inputFile && fs.existsSync(inputFile)) {
+    try {
+      const content = fs.readFileSync(inputFile, 'utf-8');
+      hookInput = JSON.parse(content);
+      fs.unlinkSync(inputFile); // Clean up temp file
+    } catch (err) {
+      console.error('Failed to read hook input from file:', err);
+      hookInput = {} as HookInput;
     }
+  } else {
+    // Fallback to stdin (may not work in compiled binary)
+    hookInput = readInput();
+  }
+
+  // Background server mode (internal)
+  if (interactionType === 'stop-server') {
+    await runStopServer(hookInput);
     process.exit(0);
     return;
   }
-
-  // Normal hook modes - read from stdin
-  const hookInput = readInput();
 
   // Stop/SubagentStop hooks: spawn background server and exit immediately
   if (interactionType === 'stop' || interactionType === 'subagent-stop') {

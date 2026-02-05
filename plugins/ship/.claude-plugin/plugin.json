@@ -1,0 +1,10 @@
+{
+  "name": "ship",
+  "version": "1.2.0",
+  "description": "PR 크기 기준 자동 분할과 순차 PR 생성을 자동화하는 Git 워크플로우 도구",
+  "author": {
+    "name": "Say Kim ",
+    "email": "say.kim@healingpaper.com",
+    "url": "https://github.com/healingpaper-solution"
+  }
+}

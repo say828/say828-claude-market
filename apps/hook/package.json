@@ -1,0 +1,21 @@
+{
+  "name": "@yourturn/hook",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "yourturn": "./dist/yourturn"
+  },
+  "scripts": {
+    "prebuild": "mkdir -p dist && cp ../../packages/ui/dist/index.html dist/ui.html 2>/dev/null || echo 'UI not built yet'",
+    "build": "bun run prebuild && bun build src/index.ts --outfile dist/index.js --target bun --minify",
+    "build:release": "bun run build && bun run build:binaries",
+    "build:binaries": "bun run build:macos-arm64 && bun run build:macos-x64 && bun run build:linux-x64 && bun run build:windows-x64",
+    "build:macos-arm64": "bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/yourturn-macos-arm64",
+    "build:macos-x64": "bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/yourturn-macos-x64",
+    "build:linux-x64": "bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/yourturn-linux-x64",
+    "build:windows-x64": "bun build src/index.ts --compile --target=bun-windows-x64 --outfile dist/yourturn-windows-x64.exe"
+  },
+  "dependencies": {
+    "@yourturn/server": "workspace:*"
+  }
+}

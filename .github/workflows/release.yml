@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build all platforms
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build UI
+        run: bun run --cwd packages/ui build
+
+      - name: Prepare hook build
+        run: |
+          mkdir -p apps/hook/dist
+          cp packages/ui/dist/index.html apps/hook/dist/ui.html
+
+      - name: Build binaries (cross-compile)
+        run: |
+          cd apps/hook
+
+          # Build for each target using Bun's cross-compilation
+          bun build src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/yourturn-darwin-arm64 --minify
+          bun build src/index.ts --compile --target=bun-darwin-x64 --outfile dist/yourturn-darwin-x64 --minify
+          bun build src/index.ts --compile --target=bun-linux-x64 --outfile dist/yourturn-linux-x64 --minify
+          bun build src/index.ts --compile --target=bun-linux-arm64 --outfile dist/yourturn-linux-arm64 --minify
+          bun build src/index.ts --compile --target=bun-windows-x64 --outfile dist/yourturn-windows-x64.exe --minify
+
+      - name: Create archives
+        run: |
+          cd apps/hook/dist
+
+          # Unix archives
+          tar -czvf yourturn-darwin-arm64.tar.gz yourturn-darwin-arm64
+          tar -czvf yourturn-darwin-x64.tar.gz yourturn-darwin-x64
+          tar -czvf yourturn-linux-x64.tar.gz yourturn-linux-x64
+          tar -czvf yourturn-linux-arm64.tar.gz yourturn-linux-arm64
+
+          # Windows archive
+          zip yourturn-windows-x64.zip yourturn-windows-x64.exe
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-binaries
+          path: |
+            apps/hook/dist/*.tar.gz
+            apps/hook/dist/*.zip
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-binaries
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*
+          generate_release_notes: true

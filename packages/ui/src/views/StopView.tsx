@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Header from '../components/Header';
 import type { StopContext } from '../api';
 
@@ -6,11 +6,41 @@ interface Props {
   context: StopContext;
 }
 
+interface TranscriptMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
+function parseTranscript(transcript: string): TranscriptMessage[] {
+  try {
+    const data = JSON.parse(transcript);
+    if (Array.isArray(data)) {
+      return data.map((item: any) => ({
+        role: item.role || 'assistant',
+        content: typeof item.content === 'string'
+          ? item.content
+          : JSON.stringify(item.content, null, 2),
+        timestamp: item.timestamp
+      }));
+    }
+    return [];
+  } catch {
+    // If not JSON, treat as plain text
+    return [{ role: 'assistant', content: transcript }];
+  }
+}
+
 export default function StopView({ context }: Props) {
   const [prompt, setPrompt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [completedAction, setCompletedAction] = useState<'acknowledge' | 'continue'>('acknowledge');
+
+  const messages = useMemo(() => {
+    if (!context.transcript) return [];
+    return parseTranscript(context.transcript);
+  }, [context.transcript]);
 
   const handleAcknowledge = async () => {
     setIsSubmitting(true);
@@ -78,56 +108,65 @@ export default function StopView({ context }: Props) {
       <div className="orb orb-2" />
       <div className="orb orb-3" />
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <Header
           title="Task Completed"
-          subtitle="Claude has finished working"
+          subtitle={context.reason}
           icon="✅"
           badge={{ text: 'Done', variant: 'safe' }}
         />
 
-        {/* Success card */}
-        <div className="glass p-8 glow-green mb-6">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 rounded-2xl glass flex items-center justify-center">
-              <span className="text-5xl">✅</span>
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-heading">Work Complete</h2>
-              <p className="text-muted mt-1">Claude has finished the current task</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Details */}
-        <div className="space-y-4 mb-6">
-          <div className="glass-subtle p-5">
-            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-              Completion Reason
+        {/* Session Transcript */}
+        {messages.length > 0 && (
+          <div className="glass p-6 mb-6 max-h-[50vh] overflow-y-auto">
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-4 sticky top-0 bg-inherit">
+              Session Transcript
             </h3>
-            <p className="text-heading">{context.reason}</p>
-          </div>
-
-          {context.summary && (
-            <div className="glass-subtle p-5">
-              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-                Summary
-              </h3>
-              <p className="text-heading whitespace-pre-wrap">{context.summary}</p>
+            <div className="space-y-4">
+              {messages.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`p-4 rounded-lg ${
+                    msg.role === 'user'
+                      ? 'bg-blue-500/10 border border-blue-500/20 ml-8'
+                      : msg.role === 'system'
+                      ? 'bg-yellow-500/10 border border-yellow-500/20'
+                      : 'bg-white/5 border border-white/10 mr-8'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs font-semibold uppercase ${
+                      msg.role === 'user' ? 'text-blue-400' :
+                      msg.role === 'system' ? 'text-yellow-400' : 'text-green-400'
+                    }`}>
+                      {msg.role}
+                    </span>
+                    {msg.timestamp && (
+                      <span className="text-xs text-muted">{msg.timestamp}</span>
+                    )}
+                  </div>
+                  <div className="text-sm text-heading whitespace-pre-wrap break-words">
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-
-          <div className="glass-subtle p-5">
-            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-              Session
-            </h3>
-            <code className="text-indigo-400 text-sm">{context.sessionId?.slice(0, 12) || 'N/A'}...</code>
           </div>
-        </div>
+        )}
+
+        {/* Summary if available */}
+        {context.summary && (
+          <div className="glass-subtle p-5 mb-6">
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+              Summary
+            </h3>
+            <p className="text-heading whitespace-pre-wrap">{context.summary}</p>
+          </div>
+        )}
 
         {/* Continue with prompt */}
         <div className="glass p-6 mb-6">
-          <h3 className="text-lg font-semibold text-heading mb-3">Continue Working (Optional)</h3>
+          <h3 className="text-lg font-semibold text-heading mb-3">Continue Working</h3>
           <p className="text-sm text-muted mb-4">
             Enter a follow-up prompt to continue the conversation
           </p>
@@ -138,26 +177,27 @@ export default function StopView({ context }: Props) {
             rows={3}
             className="w-full px-4 py-3 rounded-lg resize-none mb-4"
           />
-          <button
-            onClick={handleContinue}
-            disabled={isSubmitting || !prompt.trim()}
-            className={`btn-primary px-6 py-2 w-full ${isSubmitting || !prompt.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isSubmitting ? 'Sending...' : 'Continue with Prompt'}
-          </button>
-        </div>
-
-        {/* Acknowledge button */}
-        <div className="glass-strong p-6">
-          <div className="flex justify-center">
+          <div className="flex gap-3">
+            <button
+              onClick={handleContinue}
+              disabled={isSubmitting || !prompt.trim()}
+              className={`btn-primary px-6 py-2 flex-1 ${isSubmitting || !prompt.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {isSubmitting ? 'Sending...' : 'Continue'}
+            </button>
             <button
               onClick={handleAcknowledge}
               disabled={isSubmitting}
-              className={`btn-approve px-10 py-3 min-w-[160px] ${isSubmitting ? 'opacity-50' : ''}`}
+              className={`btn-approve px-6 py-2 ${isSubmitting ? 'opacity-50' : ''}`}
             >
-              {isSubmitting ? 'Processing...' : 'Done - Close'}
+              Done
             </button>
           </div>
+        </div>
+
+        {/* Session info footer */}
+        <div className="text-center text-xs text-muted">
+          Session: {context.sessionId || 'N/A'}
         </div>
       </div>
     </div>

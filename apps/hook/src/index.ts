@@ -274,12 +274,22 @@ function parseContext(hookInput: HookInput, interactionType: InteractionType): C
 
     case 'stop':
     case 'stop-server': {
+      // Read transcript if available
+      let transcript: string | undefined;
+      if (hookInput.transcript_path) {
+        try {
+          transcript = require('fs').readFileSync(hookInput.transcript_path, 'utf-8');
+        } catch {
+          transcript = undefined;
+        }
+      }
       return {
         type: 'stop',
         reason: hookInput.stop_hook_reason || 'Task completed',
         sessionId: hookInput.session_id,
         cwd: hookInput.cwd,
-        summary: (toolInput as any).summary
+        summary: (toolInput as any).summary,
+        transcript
       };
     }
 

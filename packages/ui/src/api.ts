@@ -45,6 +45,7 @@ export interface StopContext extends Context {
   reason: string;
   sessionId: string;
   summary?: string;
+  transcript?: string;
 }
 
 export interface SubagentStopContext extends Context {

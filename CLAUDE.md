@@ -185,20 +185,39 @@ When remote, uses fixed port 18765 for SSH port forwarding and prints URL instea
 
 **IMPORTANT: Every code change MUST go through all three testing phases:**
 
+### 0. Check Cache Version (CRITICAL)
+
+**Always verify you're testing the latest build, NOT cached versions!**
+
+```bash
+# Check installed plugin cache location
+cat ~/.claude/plugins/installed_plugins.json | grep yourturn
+
+# The running yourturn binary comes from cache, NOT your local build!
+# Cache location: ~/.claude/plugins/cache/yourturn/...
+
+# To test local changes, use the built binary directly (Step 2)
+# OR release and reinstall the plugin (Step 3)
+```
+
 ### 1. Build Test
 ```bash
 bun run build
+bun run build:release  # Build platform binaries
 ```
 Verify build completes without errors.
 
 ### 2. Local Binary Test
-Test the built binary directly without installing:
+Test the built binary directly (bypasses cache):
 ```bash
 # Test bash hook
-echo '{"session_id":"test","cwd":"'$(pwd)'","tool_input":{"command":"ls -la"}}' | ./apps/hook/dist/index.js bash
+echo '{"session_id":"test","cwd":"'$(pwd)'","tool_input":{"command":"ls -la"}}' | ./apps/hook/dist/yourturn-macos-arm64 bash
 
 # Test stop hook
-echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Task completed"}' | ./apps/hook/dist/index.js stop
+echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Task completed"}' | ./apps/hook/dist/yourturn-macos-arm64 stop
+
+# Test with transcript
+echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Done","transcript_path":"/path/to/transcript.json"}' | ./apps/hook/dist/yourturn-macos-arm64 stop
 ```
 
 ### 3. Install & Test
@@ -207,7 +226,7 @@ After releasing, install from marketplace and test in a real Claude Code session
 # Update marketplace
 /plugin marketplace update yourturn
 
-# Reinstall plugin
+# Reinstall plugin (clears cache)
 /plugin uninstall yourturn@yourturn
 /plugin install yourturn@yourturn
 
@@ -215,6 +234,7 @@ After releasing, install from marketplace and test in a real Claude Code session
 ```
 
 **DO NOT release without completing all three testing phases.**
+**DO NOT test with cached plugin when verifying local changes.**
 
 ---
 

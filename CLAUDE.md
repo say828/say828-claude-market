@@ -147,13 +147,22 @@ See `DANGEROUS_PATTERNS` and `CAUTION_PATTERNS` arrays in `apps/hook/src/index.t
 3. Hook build imports UI as text: `import html from '../dist/ui.html' with { type: 'text' }`
 4. Bun compiles to standalone binary with embedded UI
 
-### Synchronous stdin Reading
+### Input Reading (File-based, NOT stdin)
 
-Bun compiled binaries require synchronous stdin reading:
-```typescript
-const input = fs.readFileSync(0, 'utf-8');
+**CRITICAL: Bun compiled binaries have stdin issues!**
+
+Direct `fs.readFileSync(0)` causes compiled binaries to hang in "UE" (uninterruptible sleep) state.
+
+**Solution**: hooks.json uses bash wrapper to pipe stdin to temp file:
+```bash
+bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x "$B" ]&&exec "$B" bash "$T"||...'
 ```
-This is critical for Claude Code hook compatibility.
+
+Binary reads from file path argument instead of stdin:
+```typescript
+const inputFile = process.argv[3]; // temp file path
+const content = fs.readFileSync(inputFile, 'utf-8');
+```
 
 ### Browser Opening
 
@@ -263,3 +272,108 @@ bun run dev:ui
 ```
 
 Mock API responses by modifying fetch calls in `packages/ui/src/api.ts` or running a local mock server.
+
+---
+
+## Troubleshooting
+
+### Binary Hangs (UE State)
+
+**Symptom**: Process shows "UE" state in `ps aux`, 32 bytes memory usage
+
+**Causes**:
+1. Old corrupted binary at `~/.local/bin/claude-maestro`
+2. Zombie processes from previous runs blocking new ones
+
+**Solution**:
+```bash
+# Kill all stuck processes (may need sudo or reboot for truly stuck ones)
+pkill -9 -f claude-maestro
+
+# Delete and recreate binary
+rm -f ~/.local/bin/claude-maestro
+cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
+chmod +x ~/.local/bin/claude-maestro
+```
+
+### Plugin Hooks Not Triggering
+
+**Symptom**: Plugin installed but hooks don't run, old behavior persists
+
+**Causes**:
+1. Empty arrays `[]` in `~/.claude/settings.json` or `~/.claude/settings.local.json` override plugin hooks
+2. Old plugin version cached
+
+**Solution**:
+```bash
+# Check for blocking empty arrays
+cat ~/.claude/settings.json | grep -A2 "PermissionRequest\|Stop\|PreToolUse"
+
+# Remove blocking entries (should NOT have empty arrays for hooks you want plugins to handle)
+# Edit settings.json and settings.local.json to remove:
+#   "PermissionRequest": [],
+#   "PreToolUse": [],
+#   "Stop": [],
+#   "SubagentStop": []
+
+# Clear plugin cache
+rm -rf ~/.claude/plugins/cache/say828-claude-market
+
+# Reinstall
+/plugin marketplace update say828-claude-market
+/plugin uninstall claude-maestro@say828-claude-market
+/plugin install claude-maestro@say828-claude-market
+```
+
+### Old UI Showing
+
+**Symptom**: Browser shows outdated UI after code changes
+
+**Causes**:
+1. Testing with cached plugin instead of local build
+2. Old binary at `~/.local/bin/claude-maestro`
+3. Browser cache
+
+**Solution**:
+```bash
+# Always test with freshly built binary directly
+bun run build:release
+echo '{"test":"data"}' > /tmp/test.json
+./apps/hook/dist/claude-maestro-macos-arm64 bash /tmp/test.json
+
+# Update installed binary
+cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
+
+# Hard refresh browser (Cmd+Shift+R)
+```
+
+### Complete Reset Procedure
+
+When all else fails, do a complete reset:
+
+```bash
+# 1. Kill all processes
+pkill -9 -f claude-maestro || true
+
+# 2. Remove all cached/installed files
+rm -f ~/.local/bin/claude-maestro
+rm -rf ~/.claude/plugins/cache/say828-claude-market
+
+# 3. Clean settings (remove blocking hooks)
+# Edit ~/.claude/settings.json - remove empty hook arrays
+# Edit ~/.claude/settings.local.json - remove or empty the file
+
+# 4. Rebuild from scratch
+bun run clean
+bun run build:release
+
+# 5. Install fresh binary
+cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
+chmod +x ~/.local/bin/claude-maestro
+
+# 6. Reinstall plugin
+/plugin marketplace update say828-claude-market
+/plugin install claude-maestro@say828-claude-market
+
+# 7. Restart Claude Code session
+```

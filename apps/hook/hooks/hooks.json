@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-maestro plan",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" plan'",
             "timeout": 345600
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-maestro bash",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" bash'",
             "timeout": 300
           }
         ]
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-maestro edit",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" edit'",
             "timeout": 300
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-maestro question",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" question'",
             "timeout": 300
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-maestro stop",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" stop'",
             "timeout": 65
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude-maestro subagent-stop",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" subagent-stop'",
             "timeout": 65
           }
         ]

@@ -1,0 +1,100 @@
+# PR Template for KOS Project
+
+pr_template:
+  format: markdown
+  variables:
+    - name: CHANGE_STATS
+      description: "변경 통계 (git diff --stat 스타일)"
+      example: "6 files changed, 109 insertions(+), 6 deletions(-)"
+      required: true
+    - name: ADDED_FILES
+      description: "추가된 파일 목록 (bullet list) 또는 '없음'"
+      required: true
+    - name: DELETED_FILES
+      description: "삭제된 파일 목록 (bullet list) 또는 '없음'"
+      required: true
+    - name: MODIFIED_FILES
+      description: "수정된 파일 목록과 각 파일의 변경 내용 (bullet list)"
+      example: "- ConnectRoute.kt - getLinkedVisitors API 추가"
+      required: true
+    - name: TASK_ID
+      description: "Task ID (숫자만, KT- 제외)"
+      required: true
+    - name: TASK_ID_PREFIX
+      description: "Task ID 접두사 (기본값: KT-)"
+      default: "KT-"
+    - name: NOTION_TASK_URL
+      description: "Notion 태스크 URL (선택 사항)"
+      required: false
+    - name: PARENT_TASK
+      description: "부모 태스크 정보 (있으면 추가)"
+      required: false
+    - name: PREVIOUS_PRS
+      description: "이전 PR 목록 (연속된 PR의 경우)"
+      example: "- 이전 PR: #123, #124"
+      required: false
+    - name: PR_SEQUENCE
+      description: "PR 순서 정보 (예: 2/3)"
+      required: false
+    - name: ADDITIONAL_NOTES
+      description: "추가 노트 (선택)"
+      required: false
+
+  content: |
+    ## 당신이 부재할 때 이 PR이 배포되어도 괜찮나요?
+    <!--
+    이 변경사항은 지속적 통합이 고려되고 있나요?
+
+    - 건강한 `main` 브랜치를 유지하여 작업자가 자리에 없어도 자신감있게 배포할 수 있어야 합니다.
+    - 찜찜한 불안으로 체리픽 멈춰!
+
+    혹시 지속적 통합에 대해 아직 모르겠다면?
+    - [CI 전문 읽기 챌린지] (https://www.notion.so/healingpaper/CI-29dd9338d3d480afb3c9d766facfa56e)
+    -->
+
+    - 그럼요. 장애나면 되죠 뭐
+
+    ## 변경 내용
+
+    ### 요약
+
+    {CHANGE_STATS}
+
+    ### 추가된 파일
+
+    {ADDED_FILES}
+
+    ### 삭제된 파일
+
+    {DELETED_FILES}
+
+    ### 수정된 파일
+
+    {MODIFIED_FILES}
+
+    ## 관련 테스크
+
+    - {TASK_ID_PREFIX}{TASK_ID}{NOTION_TASK_URL}
+    {PARENT_TASK}
+    {PREVIOUS_PRS}
+
+    ## 기타 공유하고픈 내용 (선택 사항)
+
+usage_example: |
+  # PR 생성 시 변수 치환 예시:
+  # {CHANGE_STATS} → "6 files changed, 109 insertions(+), 6 deletions(-)"
+  # {ADDED_FILES} → "없음" 또는 "- NewClass.kt\n- AnotherNew.kt"
+  # {DELETED_FILES} → "없음" 또는 "- OldClass.kt"
+  # {MODIFIED_FILES} → "- ConnectRoute.kt - getLinkedVisitors API 추가\n- VisitorInformationApi.kt - findVisitors() 메서드 추가"
+  # {TASK_ID} → "12633"
+  # {TASK_ID_PREFIX} → "KT-"
+  # {NOTION_TASK_URL} → ": [Notion]({url})" 또는 "" (없으면 빈 문자열)
+  # {PARENT_TASK} → "- 부모: [KT-11234](url)"
+  # {PREVIOUS_PRS} → "- 이전 PR: #123, #124"
+  # {PR_SEQUENCE} → "2/3"
+
+  # 노션 링크가 있는 경우:
+  # - KT-12633: [Notion](https://notion.so/...)
+
+  # 노션 링크가 없는 경우:
+  # - KT-12633

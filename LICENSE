@@ -1,0 +1,53 @@
+# say828-claude-market License
+
+Copyright (c) 2024-2026 Say Kim (say828)
+
+## Terms and Conditions
+
+### 1. Non-Commercial Use
+
+This software is free to use, copy, modify, and distribute for **non-commercial purposes** only, provided that:
+
+- You include this license and copyright notice in all copies
+- You make your modifications publicly available under the same license
+- You do not remove or alter any license notices
+
+### 2. Commercial Use
+
+**Commercial use requires a separate commercial license.**
+
+Commercial use includes, but is not limited to:
+- Using this software in a commercial product or service
+- Using this software to generate revenue directly or indirectly
+- Using this software in a business environment for business purposes
+- Selling or licensing this software or derivatives
+
+To obtain a commercial license, contact:
+- Email: gusdn0828@gmail.com
+- GitHub: https://github.com/say828
+
+### 3. Source Code Disclosure
+
+If you distribute this software or any derivative works (whether commercially or non-commercially), you **MUST**:
+
+- Make the complete source code publicly available
+- Include all modifications and additions
+- License all derivative works under this same license (for non-commercial use)
+
+### 4. No Warranty
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+## Summary
+
+| Use Case | Allowed | Requirements |
+|----------|---------|--------------|
+| Personal/Educational | ✅ Yes | Include license, open source |
+| Open Source Projects | ✅ Yes | Include license, open source |
+| Commercial Use | ❌ No | Requires paid commercial license |
+| Modifications | ✅ Yes | Must be open sourced |
+| Distribution | ✅ Yes | Must include license & source |

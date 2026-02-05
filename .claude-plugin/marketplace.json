@@ -1,0 +1,18 @@
+{
+  "name": "say828-claude-market",
+  "owner": {
+    "name": "say828"
+  },
+  "plugins": [
+    {
+      "name": "claude-maestro",
+      "source": "./apps/hook",
+      "description": "Browser-based human-in-the-loop UI for Claude Code - handles plan approval, bash commands, file edits, and questions"
+    },
+    {
+      "name": "ship",
+      "source": "./plugins/ship",
+      "description": "PR 크기 기준 자동 분할과 순차 PR 생성을 자동화하는 Git 워크플로우 도구"
+    }
+  ]
+}

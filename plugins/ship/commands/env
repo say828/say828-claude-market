@@ -1,0 +1,55 @@
+# Ship Command Environment Variables
+# 이 파일은 /ship 커맨드 전체에서 사용되는 환경 변수를 정의합니다.
+
+# Task ID 접두사
+TASK_ID_PREFIX="KT-"
+
+# Branch 이름 패턴
+BRANCH_PATTERN="^[a-z]+/KT-[0-9]+$"
+
+# 현재 브랜치 정보 추출 스크립트
+# 모든 ship 커맨드는 시작 시 이 변수들을 추출해야 합니다.
+extract_branch_info() {
+  # Extract from current branch
+  CURRENT_BRANCH=$(git branch --show-current)
+  USERNAME=$(echo "$CURRENT_BRANCH" | cut -d'/' -f1)
+  CURRENT_TASK_ID=$(echo "$CURRENT_BRANCH" | grep -oE 'KT-[0-9]+')
+
+  # Validate extraction
+  if [ -z "$USERNAME" ] || [ -z "$CURRENT_TASK_ID" ]; then
+    echo "❌ Failed to extract username or task ID from branch: $CURRENT_BRANCH"
+    echo "📋 Branch must follow format: {username}/KT-{TASK_ID}"
+    exit 1
+  fi
+
+  # Export for use in other commands
+  export CURRENT_BRANCH
+  export USERNAME
+  export CURRENT_TASK_ID
+  export TASK_ID_PREFIX
+}
+
+# PR 크기 제한
+PR_MAX_LINES=300
+
+# Build 명령어
+BUILD_CMD="./gradlew build -x test"
+BUILD_WITH_TEST_CMD="./gradlew build"
+TEST_CMD="./gradlew test"
+LINT_CMD="./gradlew ktlintFormat editorconfigCheck"
+
+# Notion 데이터베이스 ID (필요시 설정)
+# NOTION_TASKS_DATABASE_ID=""
+# NOTION_TASKS_DATA_SOURCE_ID=""
+
+# GitHub 설정
+GITHUB_BASE_BRANCH="main"
+
+# 로그 이모지
+LOG_PHASE="🔍"
+LOG_SUCCESS="✅"
+LOG_ERROR="❌"
+LOG_WARNING="⚠️"
+LOG_REFERENCE="📋"
+LOG_NEXT="🎯"
+LOG_PACKAGE="📦"

@@ -116,38 +116,33 @@ export default function StopView({ context }: Props) {
           badge={{ text: 'Done', variant: 'safe' }}
         />
 
-        {/* Session Transcript */}
+        {/* Session Transcript - Terminal Style */}
         {messages.length > 0 && (
-          <div className="glass p-6 mb-6 max-h-[50vh] overflow-y-auto">
-            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-4 sticky top-0 bg-inherit">
-              Session Transcript
-            </h3>
-            <div className="space-y-4">
+          <div className="glass mb-6 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2 bg-black/30 border-b border-white/10">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              </div>
+              <span className="text-xs text-muted ml-2">Session Transcript</span>
+            </div>
+            <div className="bg-black/50 p-4 max-h-[60vh] overflow-y-auto font-mono text-sm">
               {messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`p-4 rounded-lg ${
-                    msg.role === 'user'
-                      ? 'bg-blue-500/10 border border-blue-500/20 ml-8'
-                      : msg.role === 'system'
-                      ? 'bg-yellow-500/10 border border-yellow-500/20'
-                      : 'bg-white/5 border border-white/10 mr-8'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-xs font-semibold uppercase ${
-                      msg.role === 'user' ? 'text-blue-400' :
-                      msg.role === 'system' ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
-                      {msg.role}
-                    </span>
-                    {msg.timestamp && (
-                      <span className="text-xs text-muted">{msg.timestamp}</span>
-                    )}
-                  </div>
-                  <div className="text-sm text-heading whitespace-pre-wrap break-words">
-                    {msg.content}
-                  </div>
+                <div key={idx} className="mb-3">
+                  <span className={`${
+                    msg.role === 'user' ? 'text-cyan-400' :
+                    msg.role === 'system' ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
+                    {msg.role === 'user' ? '❯ ' : msg.role === 'system' ? '⚙ ' : '◆ '}
+                  </span>
+                  <span className={`text-xs uppercase mr-2 ${
+                    msg.role === 'user' ? 'text-cyan-400' :
+                    msg.role === 'system' ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
+                    [{msg.role}]
+                  </span>
+                  <span className="text-gray-300 whitespace-pre-wrap">{msg.content}</span>
                 </div>
               ))}
             </div>

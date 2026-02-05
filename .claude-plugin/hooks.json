@@ -1,0 +1,23 @@
+{
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "matcher": "*",
+      "command": "bash -c 'if ! command -v claude-orchestrator &> /dev/null; then echo \"[Claude Orchestrator] Binary not installed. Run: bun run build:release && cp apps/orchestrator/dist/claude-orchestrator-* ~/.local/bin/\"; elif ! curl -s http://localhost:18700/api/stats &> /dev/null; then echo \"[Claude Orchestrator] Server not running. Start with: claude-orchestrator\"; fi'"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": {
+        "tool_name": ["Bash", "Edit", "Write", "AskUserQuestion"]
+      },
+      "command": "bash -c 'curl -s -X POST http://localhost:18700/api/hook-notify -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PreToolUse\\\",\\\"tool\\\":\\\"$CLAUDE_TOOL_NAME\\\",\\\"sessionId\\\":\\\"$CLAUDE_SESSION_ID\\\"}\" 2>/dev/null || true'"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": {
+        "tool_name": ["Bash", "Edit", "Write"]
+      },
+      "command": "bash -c 'curl -s -X POST http://localhost:18700/api/hook-notify -H \"Content-Type: application/json\" -d \"{\\\"event\\\":\\\"PostToolUse\\\",\\\"tool\\\":\\\"$CLAUDE_TOOL_NAME\\\",\\\"sessionId\\\":\\\"$CLAUDE_SESSION_ID\\\"}\" 2>/dev/null || true'"
+    }
+  ]
+}

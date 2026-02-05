@@ -54,6 +54,8 @@ curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/sc
 ```
 
 > **Note:** `~/.local/bin`이 PATH에 있어야 합니다.
+>
+> 바이너리 미설치 시 훅 호출 시 설치 안내 메시지가 표시됩니다.
 
 ### 환경 변수
 

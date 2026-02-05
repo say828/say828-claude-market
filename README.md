@@ -11,8 +11,8 @@ Claude Code 플러그인 마켓플레이스입니다.
 추가 후 플러그인 설치:
 
 ```bash
-# claude-with-browser 설치
-/plugin install claude-with-browser@say828-claude-market
+# claude-maestro 설치
+/plugin install claude-maestro@say828-claude-market
 
 # ship 설치
 /plugin install ship@say828-claude-market
@@ -22,12 +22,12 @@ Claude Code 플러그인 마켓플레이스입니다.
 
 | 플러그인 | 설명 |
 |----------|------|
-| **claude-with-browser** | Browser-based human-in-the-loop UI for Claude Code |
+| **claude-maestro** | Browser-based human-in-the-loop UI for Claude Code |
 | **ship** | PR 분할 및 자동 생성 워크플로우 도구 |
 
 ---
 
-## claude-with-browser
+## claude-maestro
 
 Browser-based human-in-the-loop UI for Claude Code. 모든 상호작용을 웹 UI로 처리합니다.
 
@@ -45,7 +45,7 @@ Browser-based human-in-the-loop UI for Claude Code. 모든 상호작용을 웹 U
 ### 설치
 
 ```bash
-/plugin install claude-with-browser@say828-claude-market
+/plugin install claude-maestro@say828-claude-market
 ```
 
 ### 환경 변수
@@ -131,7 +131,7 @@ bun run build:release
 
 ```
 say828-claude-market/
-├── apps/hook/          # claude-with-browser CLI 바이너리
+├── apps/hook/          # claude-maestro CLI 바이너리
 ├── packages/
 │   ├── server/         # HTTP 서버 라이브러리
 │   └── ui/             # React SPA (Vite)

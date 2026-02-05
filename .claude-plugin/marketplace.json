@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "claude-with-browser",
+      "name": "claude-maestro",
       "source": "./apps/hook",
       "description": "Browser-based human-in-the-loop UI for Claude Code - handles plan approval, bash commands, file edits, and questions"
     },

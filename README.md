@@ -5,7 +5,17 @@ Claude Code 플러그인 마켓플레이스입니다.
 ## 마켓플레이스 추가
 
 ```bash
-claude mcp add-json claude-plugin-marketplace '{"type":"url","url":"https://raw.githubusercontent.com/say828/say828-claude-market/main/.claude-plugin/marketplace.json"}'
+/plugin marketplace add say828/say828-claude-market
+```
+
+추가 후 플러그인 설치:
+
+```bash
+# yourturn 설치
+/plugin install yourturn@say828
+
+# ship 설치
+/plugin install ship@say828
 ```
 
 ## 플러그인 목록

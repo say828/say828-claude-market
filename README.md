@@ -18,6 +18,8 @@ Claude Code 플러그인 마켓플레이스입니다.
 /plugin install ship@say828
 ```
 
+> 마켓플레이스 이름: `say828`
+
 ## 플러그인 목록
 
 | 플러그인 | 설명 |

@@ -11,8 +11,8 @@ Claude Code 플러그인 마켓플레이스입니다.
 추가 후 플러그인 설치:
 
 ```bash
-# yourturn 설치
-/plugin install yourturn@say828-claude-market
+# claude-with-browser 설치
+/plugin install claude-with-browser@say828-claude-market
 
 # ship 설치
 /plugin install ship@say828-claude-market
@@ -22,12 +22,12 @@ Claude Code 플러그인 마켓플레이스입니다.
 
 | 플러그인 | 설명 |
 |----------|------|
-| **yourturn** | Browser-based human-in-the-loop UI for Claude Code |
+| **claude-with-browser** | Browser-based human-in-the-loop UI for Claude Code |
 | **ship** | PR 분할 및 자동 생성 워크플로우 도구 |
 
 ---
 
-## yourturn
+## claude-with-browser
 
 Browser-based human-in-the-loop UI for Claude Code. 모든 상호작용을 웹 UI로 처리합니다.
 
@@ -39,33 +39,13 @@ Browser-based human-in-the-loop UI for Claude Code. 모든 상호작용을 웹 U
 | **Bash Approval** | `Bash` | 명령어 위험도 평가 (🟢 🟡 🔴) |
 | **File Edit Review** | `Edit\|Write` | Side-by-side diff 뷰 |
 | **Question UI** | `AskUserQuestion` | 대화형 질문 응답 |
-| **Task Complete** | `Stop` | 작업 완료 알림 |
+| **Task Complete** | `Stop` | 작업 완료 알림 + 세션 대화 표시 |
 | **Subagent Complete** | `SubagentStop` | 서브에이전트 완료 알림 |
 
 ### 설치
 
 ```bash
-# 플러그인 설치
-/plugin install yourturn@say828
-```
-
-### 수동 설치
-
-```bash
-# macOS (Apple Silicon)
-curl -fsSL https://github.com/say828/say828-claude-market/releases/latest/download/yourturn-macos-arm64 -o yourturn
-chmod +x yourturn
-sudo mv yourturn /usr/local/bin/
-
-# macOS (Intel)
-curl -fsSL https://github.com/say828/say828-claude-market/releases/latest/download/yourturn-macos-x64 -o yourturn
-chmod +x yourturn
-sudo mv yourturn /usr/local/bin/
-
-# Linux (x64)
-curl -fsSL https://github.com/say828/say828-claude-market/releases/latest/download/yourturn-linux-x64 -o yourturn
-chmod +x yourturn
-sudo mv yourturn /usr/local/bin/
+/plugin install claude-with-browser@say828-claude-market
 ```
 
 ### 환경 변수
@@ -91,8 +71,7 @@ PR 크기 기준 자동 분할과 순차 PR 생성을 자동화하는 Git 워크
 ### 설치
 
 ```bash
-# 플러그인 설치
-/plugin install ship@say828
+/plugin install ship@say828-claude-market
 ```
 
 ### 명령어
@@ -152,7 +131,7 @@ bun run build:release
 
 ```
 say828-claude-market/
-├── apps/hook/          # yourturn CLI 바이너리
+├── apps/hook/          # claude-with-browser CLI 바이너리
 ├── packages/
 │   ├── server/         # HTTP 서버 라이브러리
 │   └── ui/             # React SPA (Vite)
@@ -163,4 +142,6 @@ say828-claude-market/
 
 ## 라이선스
 
-MIT License - see [LICENSE](LICENSE) for details.
+Non-commercial + Copyleft License - see [LICENSE](LICENSE) for details.
+
+상업적 사용 문의: gusdn0828@gmail.com

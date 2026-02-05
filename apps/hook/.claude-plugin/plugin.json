@@ -1,11 +1,11 @@
 {
-  "name": "yourturn",
+  "name": "claude-with-browser",
   "description": "Browser-based human-in-the-loop UI for Claude Code - handles plan approval, bash commands, file edits, and questions",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "author": {
     "name": "say828"
   },
-  "repository": "https://github.com/say828/yourturn",
+  "repository": "https://github.com/say828/say828-claude-market",
   "keywords": [
     "human-in-the-loop",
     "browser-ui",

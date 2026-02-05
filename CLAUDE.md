@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-YourTurn is a browser-based human-in-the-loop UI system for Claude Code hooks. It intercepts Claude Code events (permission requests, stop events, questions) and provides an interactive browser UI for user approval/denial.
+Claude Orchestrator is a browser-based multi-session management UI for Claude Code. It provides:
+- Real-time monitoring of all Claude Code sessions
+- Hook notifications with customizable alerts (sound, per-type filtering)
+- Plugin management and browsing
+- Claude Code settings management through a web UI
+- Dashboard with session statistics
 
 ## Build Commands
 
@@ -12,25 +17,16 @@ YourTurn is a browser-based human-in-the-loop UI system for Claude Code hooks. I
 # Install dependencies
 bun install
 
-# Build everything (UI + hook)
+# Build everything (UI + server)
 bun run build
-
-# Build just the UI (produces single-file HTML)
-bun run build:ui
-
-# Build just the hook (requires UI to be built first)
-bun run build:hook
 
 # Build release binaries for all platforms
 bun run build:release
 
-# Build specific platform binary
-cd apps/hook && bun run build:macos-arm64
-cd apps/hook && bun run build:macos-x64
-cd apps/hook && bun run build:linux-x64
-cd apps/hook && bun run build:windows-x64
+# Dev mode (runs server)
+bun run dev
 
-# Dev UI with hot reload
+# Dev UI only (Vite dev server with hot reload)
 bun run dev:ui
 
 # Clean all build artifacts
@@ -42,346 +38,179 @@ bun run clean
 ### Monorepo Structure
 
 ```
-claude-maestro/
-├── apps/hook/              # CLI binary (Bun)
-│   ├── src/index.ts        # Main CLI entry point
-│   ├── hooks/hooks.json    # Hook configuration
+claude-orchestrator/
+├── apps/orchestrator/           # Main server binary (Bun)
+│   ├── src/
+│   │   ├── index.ts            # Main server entry point
+│   │   ├── session-watcher.ts  # File system watcher for sessions
+│   │   ├── config-manager.ts   # Claude Code settings management
+│   │   ├── plugin-manager.ts   # Plugin management
+│   │   └── types.ts            # Type definitions
 │   └── dist/
-│       ├── ui.html         # Embedded UI (copied from packages/ui/dist)
-│       └── claude-maestro-*      # Compiled binaries
-├── packages/
-│   ├── ui/                 # React UI (Vite + single-file HTML)
-│   │   ├── src/
-│   │   │   ├── App.tsx             # Main router
-│   │   │   ├── api.ts              # API client for /api/* endpoints
-│   │   │   ├── views/              # One view per interaction type
-│   │   │   └── components/         # Shared UI components
-│   │   └── vite.config.ts          # Uses vite-plugin-singlefile
-│   └── server/             # Server type definitions (minimal)
+│       ├── ui.html             # Embedded UI (from packages/orchestrator-ui)
+│       └── claude-orchestrator-* # Compiled binaries
+├── packages/orchestrator-ui/    # React UI (Vite + single-file HTML)
+│   └── src/
+│       ├── App.tsx             # Main app with tabs
+│       ├── views/
+│       │   ├── PluginsView.tsx     # Plugin management
+│       │   └── SettingsView.tsx    # Settings management
+│       └── index.css           # Tailwind styles
 ```
 
-### Hook CLI (`apps/hook/src/index.ts`)
+### Core Features
 
-Single-file CLI (647 lines) that orchestrates the entire flow:
+#### 1. Session Monitoring
+- Watches `~/.claude/projects/` for session JSONL files
+- Real-time updates via WebSocket
+- Shows session status: active (green), idle (gray), pending_hook (yellow pulsing)
+- Displays message history, tool usage, and timestamps
 
-1. **Receives input**: Reads JSON from stdin (synchronous via `fs.readFileSync(0)`)
-2. **Starts HTTP server**: Bun.serve() with embedded UI
-3. **Opens browser**: Platform-aware browser opening (macOS/Linux/Windows/WSL)
-4. **Waits for response**: Polling loop checks if server is still running
-5. **Returns response**: Outputs JSON to stdout and exits
+#### 2. Hook Notifications
+- Detects new hooks in real-time (bash, edit, plan, question)
+- Slide-in notification panel from right side
+- Audio notification using Web Audio API (configurable)
+- Per-hook-type filtering (enable/disable each type)
+- Settings persist to localStorage
 
-**Interaction Types:**
-- `plan` - ExitPlanMode approval with markdown rendering
-- `bash` - Bash command approval with risk assessment (safe/caution/dangerous)
-- `edit` - File Write/Edit approval with diff view
-- `question` - AskUserQuestion response with option selection
-- `stop` - Task completion notification (spawns background server, exits immediately)
-- `subagent-stop` - Subagent completion notification (spawns background server, exits immediately)
-- `stop-server` - Internal mode for background server process
+#### 3. Plugin Management
+- Lists installed plugins from `~/.claude/plugins/`
+- Shows plugin hooks, commands, metadata, keywords
+- Plugin statistics (total, enabled, with hooks, with commands)
+- Two-panel layout with detail view
 
-**Stop Hook Behavior (Critical):**
+#### 4. Settings Management
+- Edit `~/.claude/settings.json` (synced settings)
+- Edit `~/.claude/settings.local.json` (machine-specific)
+- View custom commands from `~/.claude/commands/`
+- View custom hooks from `~/.claude/hooks/`
+- Edit `~/.claude/CLAUDE.md` with live preview
 
-Stop and SubagentStop hooks use a special flow to comply with Claude Code's timeout requirements:
-
-1. Main process writes hook input to temp file
-2. Spawns detached background process: `claude-maestro stop-server <tempfile>`
-3. Main process exits 0 immediately (allows stop to proceed)
-4. Background process runs server and opens browser
-5. User can acknowledge or continue with new prompt
-
-Exit codes follow Claude Code stop hook semantics:
-- Exit 0 with no output = allow stop
-- Exit 0 with JSON `{"decision": "block", "reason": "..."}` = block stop, continue
-
-### Hook Configuration (`apps/hook/hooks/hooks.json`)
-
-Maps Claude Code events to CLI commands:
-
-| Event | Matcher | Command | Timeout |
-|-------|---------|---------|---------|
-| `PermissionRequest` | `ExitPlanMode` | `claude-maestro plan` | 345600s |
-| `PermissionRequest` | `Bash` | `claude-maestro bash` | 300s |
-| `PermissionRequest` | `Edit\|Write` | `claude-maestro edit` | 300s |
-| `PreToolUse` | `AskUserQuestion` | `claude-maestro question` | 300s |
-| `Stop` | (all) | `claude-maestro stop` | 65s |
-| `SubagentStop` | (all) | `claude-maestro subagent-stop` | 65s |
-
-### UI Structure (`packages/ui/src/`)
-
-- **App.tsx**: Main router that fetches context and renders appropriate view
-- **api.ts**: API client for `/api/context`, `/api/approve`, `/api/deny`, etc.
-- **views/**: One view per interaction type (PlanView, BashView, EditView, QuestionView, StopView, SubagentStopView, PostToolView)
-- **components/**: Shared components (Header, ActionButtons, ThemeToggle, Loading, ErrorDisplay)
-
-The UI is built as a single-file HTML (via vite-plugin-singlefile) that gets embedded into the CLI binary at build time.
-
-### HTTP Server Endpoints
+### API Endpoints
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/` | GET | Serves embedded UI HTML |
-| `/api/context` | GET | Returns current interaction context |
-| `/api/approve` | POST | Approve action (plan/bash/edit) |
-| `/api/deny` | POST | Deny action with optional message |
-| `/api/answer` | POST | Submit question answers |
-| `/api/acknowledge` | POST | Acknowledge completion (stop/subagent-stop) |
-| `/api/plan-decision` | POST | Plan approval (approve/feedback/reject) |
-| `/api/stop-decision` | POST | Stop decision (acknowledge/continue) |
+| `/ws` | WebSocket | Real-time session/hook updates |
+| `/api/sessions` | GET | List all sessions with stats |
+| `/api/session/:id` | GET | Get session details and messages |
+| `/api/stats` | GET | Dashboard statistics |
+| `/api/plugins` | GET | List installed plugins |
+| `/api/plugins/:id` | GET | Get plugin details |
+| `/api/plugin-stats` | GET | Plugin statistics |
+| `/api/config` | GET | All config at once |
+| `/api/settings` | GET/POST | Main settings.json |
+| `/api/settings-local` | GET/POST | Local settings.local.json |
+| `/api/commands` | GET | Custom commands list |
+| `/api/hooks` | GET | Custom hooks list |
+| `/api/claude-md` | GET/POST | CLAUDE.md content |
+| `/api/config-paths` | GET | Config file paths |
 
-### Risk Assessment
+### WebSocket Events
 
-Bash commands are classified into three risk levels based on regex patterns:
-
-- **dangerous** (🔴): `rm -rf /`, `sudo`, `DROP DATABASE`, `git push --force`, `chmod 777`, `eval`, etc.
-- **caution** (🟡): `git push`, `npm publish`, `docker rm`, `chmod`, `systemctl`, etc.
-- **safe** (🟢): All other commands
-
-See `DANGEROUS_PATTERNS` and `CAUTION_PATTERNS` arrays in `apps/hook/src/index.ts:77-135`.
-
-## Key Implementation Details
-
-### Build Process
-
-1. UI is built first: `vite build` produces single-file `packages/ui/dist/index.html`
-2. Hook prebuild copies UI to `apps/hook/dist/ui.html`
-3. Hook build imports UI as text: `import html from '../dist/ui.html' with { type: 'text' }`
-4. Bun compiles to standalone binary with embedded UI
-
-### Input Reading (File-based, NOT stdin)
-
-**CRITICAL: Bun compiled binaries have stdin issues!**
-
-Direct `fs.readFileSync(0)` causes compiled binaries to hang in "UE" (uninterruptible sleep) state.
-
-**Solution**: hooks.json uses bash wrapper to pipe stdin to temp file:
-```bash
-bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x "$B" ]&&exec "$B" bash "$T"||...'
-```
-
-Binary reads from file path argument instead of stdin:
-```typescript
-const inputFile = process.argv[3]; // temp file path
-const content = fs.readFileSync(inputFile, 'utf-8');
-```
-
-### Browser Opening
-
-Platform-aware browser opening logic (`apps/hook/src/index.ts:175-215`):
-- **macOS**: `open <url>`
-- **Windows**: `cmd /c start "" <url>`
-- **Linux**: `xdg-open <url>`
-- **WSL**: `cmd.exe /c start "" <url>`
-- **Remote (SSH)**: Prints URL instead of opening browser
+| Event Type | Direction | Purpose |
+|------------|-----------|---------|
+| `init` | Server→Client | Initial sessions and stats |
+| `sessions_update` | Server→Client | Session list changed |
+| `hook_alert` | Server→Client | New hook detected |
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `YOURTURN_PORT` | Fixed port number | Random (local) or 18765 (remote) |
-| `YOURTURN_REMOTE` | Force remote mode (`1`) | Auto-detect via `$SSH_TTY` |
-| `YOURTURN_BROWSER` | Custom browser command | System default |
+| `ORCHESTRATOR_PORT` | Server port | 18700 |
+| `NO_BROWSER` | Don't auto-open browser | (unset) |
 
-### Remote Detection
+## Claude Code Session Format
 
-Remote mode is detected via:
-- `YOURTURN_REMOTE=1` environment variable
-- `SSH_TTY` environment variable (set by SSH)
-- `SSH_CONNECTION` environment variable (set by SSH)
+Sessions are stored in `~/.claude/projects/<project-path>/` as JSONL files:
 
-When remote, uses fixed port 18765 for SSH port forwarding and prints URL instead of opening browser.
-
-## Required Testing After Every Code Change
-
-**CRITICAL: After ANY code change, you MUST build AND replace the binary!**
-
-### Mandatory Build & Replace Workflow
-
-After every UI or hook code change, run this sequence:
-
-```bash
-# 1. Build release binaries
-bun run build:release
-
-# 2. Replace the installed binary (MANDATORY!)
-# IMPORTANT: Must use rm -f before cp! Direct cp causes UE state issues on macOS.
-rm -f ~/.local/bin/claude-maestro
-cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
-chmod +x ~/.local/bin/claude-maestro
-
-# 3. Kill any old servers
-pkill -f "stop-server" 2>/dev/null || true
+```json
+{
+  "type": "user|assistant|progress|system",
+  "sessionId": "uuid",
+  "message": {
+    "role": "user|assistant",
+    "content": [
+      {"type": "text", "text": "..."},
+      {"type": "tool_use", "id": "...", "name": "Bash", "input": {...}},
+      {"type": "tool_result", "tool_use_id": "...", "content": "..."}
+    ]
+  },
+  "timestamp": "ISO8601",
+  "uuid": "message-uuid",
+  "parentUuid": "parent-message-uuid"
+}
 ```
 
-**⚠️ DO NOT skip step 2!** Without replacing the binary, you will test the OLD version.
-**⚠️ CRITICAL: Always use `rm -f` before `cp`!** Overwriting in place causes macOS to cache old binary state, resulting in UE (uninterruptible sleep) zombie processes.
+## Development
 
-### Testing Commands
-
-```bash
-# Test bash hook
-echo '{"session_id":"test","cwd":"'$(pwd)'","tool_input":{"command":"ls -la"}}' | ./apps/hook/dist/claude-maestro-macos-arm64 bash
-
-# Test stop hook (with transcript)
-echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Task completed","transcript_path":"/tmp/test-transcript.json"}' | ./apps/hook/dist/claude-maestro-macos-arm64 stop
-
-# Check server port
-lsof -i -P | grep claude-ma | grep LISTEN
-```
-
-### Plugin Release Testing
-
-After releasing, reinstall from marketplace:
-```bash
-/plugin marketplace update claude-maestro
-/plugin uninstall claude-maestro@claude-maestro
-/plugin install claude-maestro@claude-maestro
-```
-
-### Zombie Process Cleanup
-
-UE state processes (32 bytes memory) are zombie processes from old corrupted binary.
-They cannot be killed - require system reboot or replacing the binary at `~/.local/bin/claude-maestro`.
+### Running Locally
 
 ```bash
-# Check for zombies
-ps aux | grep claude-maestro | grep UE
+# Build and run
+bun run build
+./apps/orchestrator/dist/claude-orchestrator-macos-arm64
 
-# Replace binary to prevent new zombies (MUST use rm -f before cp!)
-rm -f ~/.local/bin/claude-maestro
-cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
-chmod +x ~/.local/bin/claude-maestro
+# Or use dev mode
+bun run dev
 ```
 
----
-
-## Development Tips
-
-### Adding a New Interaction Type
-
-1. Add type to `InteractionType` union in `apps/hook/src/index.ts:45`
-2. Add case to `parseContext()` in `apps/hook/src/index.ts:221`
-3. Create new view component in `packages/ui/src/views/`
-4. Add route case to `App.tsx` router
-5. Update hooks.json configuration
-
-### Testing Hook Behavior
-
-To test hook behavior without Claude Code, pipe JSON to stdin:
-```bash
-echo '{"session_id":"test","cwd":"'$(pwd)'","tool_input":{"command":"ls -la"}}' | bun run apps/hook/src/index.ts bash
-```
-
-### UI Development
-
-Run UI in dev mode with hot reload:
-```bash
-bun run dev:ui
-```
-
-Mock API responses by modifying fetch calls in `packages/ui/src/api.ts` or running a local mock server.
-
----
-
-## Troubleshooting
-
-### Binary Hangs (UE State)
-
-**Symptom**: Process shows "UE" state in `ps aux`, 32 bytes memory usage
-
-**Causes**:
-1. Old corrupted binary at `~/.local/bin/claude-maestro`
-2. Zombie processes from previous runs blocking new ones
-3. **Most common**: Using `cp` to overwrite binary in place instead of `rm -f` then `cp` - macOS caches binary state
-
-**Solution**:
-```bash
-# Kill all stuck processes (may need sudo or reboot for truly stuck ones)
-pkill -9 -f claude-maestro
-
-# Delete and recreate binary
-rm -f ~/.local/bin/claude-maestro
-cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
-chmod +x ~/.local/bin/claude-maestro
-```
-
-### Plugin Hooks Not Triggering
-
-**Symptom**: Plugin installed but hooks don't run, old behavior persists
-
-**Causes**:
-1. Empty arrays `[]` in `~/.claude/settings.json` or `~/.claude/settings.local.json` override plugin hooks
-2. Old plugin version cached
-
-**Solution**:
-```bash
-# Check for blocking empty arrays
-cat ~/.claude/settings.json | grep -A2 "PermissionRequest\|Stop\|PreToolUse"
-
-# Remove blocking entries (should NOT have empty arrays for hooks you want plugins to handle)
-# Edit settings.json and settings.local.json to remove:
-#   "PermissionRequest": [],
-#   "PreToolUse": [],
-#   "Stop": [],
-#   "SubagentStop": []
-
-# Clear plugin cache
-rm -rf ~/.claude/plugins/cache/say828-claude-market
-
-# Reinstall
-/plugin marketplace update say828-claude-market
-/plugin uninstall claude-maestro@say828-claude-market
-/plugin install claude-maestro@say828-claude-market
-```
-
-### Old UI Showing
-
-**Symptom**: Browser shows outdated UI after code changes
-
-**Causes**:
-1. Testing with cached plugin instead of local build
-2. Old binary at `~/.local/bin/claude-maestro`
-3. Browser cache
-
-**Solution**:
-```bash
-# Always test with freshly built binary directly
-bun run build:release
-echo '{"test":"data"}' > /tmp/test.json
-./apps/hook/dist/claude-maestro-macos-arm64 bash /tmp/test.json
-
-# Update installed binary
-cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
-
-# Hard refresh browser (Cmd+Shift+R)
-```
-
-### Complete Reset Procedure
-
-When all else fails, do a complete reset:
+### Testing API
 
 ```bash
-# 1. Kill all processes
-pkill -9 -f claude-maestro || true
+# Get stats
+curl http://localhost:18700/api/stats
 
-# 2. Remove all cached/installed files
-rm -f ~/.local/bin/claude-maestro
-rm -rf ~/.claude/plugins/cache/say828-claude-market
+# Get sessions
+curl http://localhost:18700/api/sessions
 
-# 3. Clean settings (remove blocking hooks)
-# Edit ~/.claude/settings.json - remove empty hook arrays
-# Edit ~/.claude/settings.local.json - remove or empty the file
-
-# 4. Rebuild from scratch
-bun run clean
-bun run build:release
-
-# 5. Install fresh binary
-cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
-chmod +x ~/.local/bin/claude-maestro
-
-# 6. Reinstall plugin
-/plugin marketplace update say828-claude-market
-/plugin install claude-maestro@say828-claude-market
-
-# 7. Restart Claude Code session
+# Get plugins
+curl http://localhost:18700/api/plugins
 ```
+
+### Adding New Features
+
+1. **New API Endpoint**: Add to `apps/orchestrator/src/index.ts` in the fetch handler
+2. **New UI View**: Create in `packages/orchestrator-ui/src/views/`
+3. **New Tab**: Update `App.tsx` with new TabType and conditional render
+
+### Build Process
+
+1. UI is built first: `vite build` produces single-file HTML via vite-plugin-singlefile
+2. Server prebuild copies UI: `cp packages/orchestrator-ui/dist/index.html apps/orchestrator/dist/ui.html`
+3. Server build imports UI as text: `import html from '../dist/ui.html' with { type: 'text' }`
+4. Bun compiles to standalone binary with embedded UI
+
+## Key Implementation Details
+
+### Session Watcher
+
+The `SessionWatcher` class:
+- Uses `fs.watch` for directory changes
+- Polls session files every 1 second for content changes
+- Tracks file positions for incremental reads
+- Detects pending hooks by finding tool_use without tool_result
+- Emits `onUpdate` when sessions change
+- Emits `onHookAlert` when new hooks are detected
+
+### Hook Detection
+
+A hook is considered "pending" when:
+1. A `tool_use` block exists with name in `['Bash', 'Edit', 'Write', 'AskUserQuestion']`
+2. No corresponding `tool_result` block exists (matched by tool_use_id)
+
+### Plugin Manager
+
+The `PluginManager` class:
+- Reads `~/.claude/plugins/installed_plugins.json`
+- Parses plugin manifests from `.claude-plugin/plugin.json`
+- Extracts hooks from multiple locations (hooks.json, .claude-plugin/hooks.json)
+- Parses Claude Code's nested hook format (event type → matchers → commands)
+
+### Config Manager
+
+Provides functions to:
+- Read/write settings files with JSON parsing
+- List custom commands and hooks as file paths
+- Handle CLAUDE.md as plain text

@@ -6,6 +6,12 @@ export default defineConfig({
   plugins: [react(), viteSingleFile()],
   build: {
     target: 'esnext',
-    minify: 'esbuild'
+    cssCodeSplit: false,
+    assetsInlineLimit: 100000000,
+    rollupOptions: {
+      output: {
+        inlineDynamicImports: true
+      }
+    }
   }
 });

@@ -1,17 +1,18 @@
 {
-  "name": "yourturn-monorepo",
+  "name": "claude-orchestrator-monorepo",
   "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run build:ui && bun run build:hook",
-    "build:ui": "cd packages/ui && bun run build",
-    "build:hook": "cd apps/hook && bun run build",
-    "build:release": "cd apps/hook && bun run build:release",
-    "dev:ui": "cd packages/ui && bun run dev",
-    "clean": "rm -rf apps/hook/dist packages/ui/dist"
+    "build": "bun run build:ui && bun run build:orchestrator",
+    "build:ui": "cd packages/orchestrator-ui && bun run build",
+    "build:orchestrator": "cd apps/orchestrator && bun run build",
+    "build:release": "cd apps/orchestrator && bun run build:release",
+    "dev": "cd apps/orchestrator && bun run dev",
+    "dev:ui": "cd packages/orchestrator-ui && bun run dev",
+    "clean": "rm -rf apps/orchestrator/dist packages/orchestrator-ui/dist node_modules"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

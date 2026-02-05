@@ -12,13 +12,11 @@ Claude Code 플러그인 마켓플레이스입니다.
 
 ```bash
 # yourturn 설치
-/plugin install yourturn@say828
+/plugin install yourturn@say828-claude-market
 
 # ship 설치
-/plugin install ship@say828
+/plugin install ship@say828-claude-market
 ```
-
-> 마켓플레이스 이름: `say828`
 
 ## 플러그인 목록
 

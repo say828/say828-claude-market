@@ -18,6 +18,8 @@ import {
   requireBoolean,
   safeWebSocketHandler
 } from './error-handler';
+import * as auth from './auth';
+import * as rateLimiter from './rate-limiter';
 
 // @ts-ignore - Import HTML as text
 import html from '../dist/ui.html' with { type: 'text' };
@@ -235,7 +237,7 @@ const server = Bun.serve({
 
     // Helper to create JSON response with rate limit headers
     const jsonResponse = (data: any, init?: ResponseInit): Response => {
-      const response = jsonResponse(data, init);
+      const response = Response.json(data, init);
       return addRateLimitHeaders(response);
     };
 

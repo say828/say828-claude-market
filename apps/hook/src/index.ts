@@ -294,12 +294,22 @@ function parseContext(hookInput: HookInput, interactionType: InteractionType): C
     }
 
     case 'subagent-stop': {
+      // Read transcript if available
+      let transcript: string | undefined;
+      if (hookInput.transcript_path) {
+        try {
+          transcript = require('fs').readFileSync(hookInput.transcript_path, 'utf-8');
+        } catch {
+          transcript = undefined;
+        }
+      }
       return {
         type: 'subagent-stop',
         subagentName: (toolInput as any).subagent_name || hookInput.tool_name || 'Subagent',
         result: (toolInput as any).result || hookInput.tool_output,
         sessionId: hookInput.session_id,
-        cwd: hookInput.cwd
+        cwd: hookInput.cwd,
+        transcript
       };
     }
 
@@ -417,7 +427,8 @@ interface CreateServerResult {
   timedOut: boolean;
 }
 
-async function createServer(serverConfig: ServerConfig, timeoutMs: number = 300000): Promise<CreateServerResult> {
+// 1 hour timeout to prevent zombie processes
+async function createServer(serverConfig: ServerConfig, timeoutMs: number = 3600000): Promise<CreateServerResult> {
   config = serverConfig;
   currentContext = parseContext(serverConfig.hookInput, serverConfig.interactionType);
   serverCwd = serverConfig.hookInput.cwd || process.cwd();
@@ -475,6 +486,12 @@ async function createServer(serverConfig: ServerConfig, timeoutMs: number = 3000
 
 async function runStopServer(hookInput: HookInput): Promise<void> {
   const isSubagent = hookInput.hook_event_name === 'SubagentStop';
+
+  // Debug: log hook input to file
+  try {
+    const debugPath = '/tmp/maestro-debug-hook-input.json';
+    require('fs').writeFileSync(debugPath, JSON.stringify(hookInput, null, 2));
+  } catch {}
 
   await createServer({
     interactionType: isSubagent ? 'subagent-stop' : 'stop',

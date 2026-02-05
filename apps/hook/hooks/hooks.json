@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x \"$B\" ]&&exec \"$B\" plan \"$T\"||{ rm -f $T;echo \"[claude-maestro] Not installed. Run: curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/scripts/install.sh | bash\" >&2;exit 1; }'",
-            "timeout": 345600
+            "timeout": 3600
           }
         ]
       },
@@ -17,7 +17,7 @@
           {
             "type": "command",
             "command": "bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x \"$B\" ]&&exec \"$B\" bash \"$T\"||{ rm -f $T;echo \"[claude-maestro] Not installed. Run: curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/scripts/install.sh | bash\" >&2;exit 1; }'",
-            "timeout": 300
+            "timeout": 3600
           }
         ]
       },
@@ -27,7 +27,7 @@
           {
             "type": "command",
             "command": "bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x \"$B\" ]&&exec \"$B\" edit \"$T\"||{ rm -f $T;echo \"[claude-maestro] Not installed. Run: curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/scripts/install.sh | bash\" >&2;exit 1; }'",
-            "timeout": 300
+            "timeout": 3600
           }
         ]
       }
@@ -39,7 +39,7 @@
           {
             "type": "command",
             "command": "bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x \"$B\" ]&&exec \"$B\" question \"$T\"||{ rm -f $T;echo \"[claude-maestro] Not installed. Run: curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/scripts/install.sh | bash\" >&2;exit 1; }'",
-            "timeout": 300
+            "timeout": 3600
           }
         ]
       }
@@ -50,17 +50,6 @@
           {
             "type": "command",
             "command": "bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x \"$B\" ]&&exec \"$B\" stop \"$T\"||{ rm -f $T;echo \"[claude-maestro] Not installed. Run: curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/scripts/install.sh | bash\" >&2;exit 1; }'",
-            "timeout": 65
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;T=$(mktemp);cat>$T;[ -x \"$B\" ]&&exec \"$B\" subagent-stop \"$T\"||{ rm -f $T;echo \"[claude-maestro] Not installed. Run: curl -fsSL https://raw.githubusercontent.com/say828/say828-claude-market/main/scripts/install.sh | bash\" >&2;exit 1; }'",
             "timeout": 65
           }
         ]

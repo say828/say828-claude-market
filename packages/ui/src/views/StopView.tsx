@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { marked } from 'marked';
+import hljs from 'highlight.js';
 import Header from '../components/Header';
 import type { StopContext } from '../api';
 
@@ -6,29 +8,84 @@ interface Props {
   context: StopContext;
 }
 
+// Claude Code transcript content block types
+interface TextBlock {
+  type: 'text';
+  text: string;
+}
+
+interface ToolUseBlock {
+  type: 'tool_use';
+  id?: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+interface ToolResultBlock {
+  type: 'tool_result';
+  tool_use_id?: string;
+  content: string | Array<{ type: string; text?: string }>;
+}
+
+type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock;
+
 interface TranscriptMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp?: string;
+  role: 'user' | 'assistant';
+  content: string | ContentBlock[];
 }
 
 function parseTranscript(transcript: string): TranscriptMessage[] {
   try {
     const data = JSON.parse(transcript);
     if (Array.isArray(data)) {
-      return data.map((item: any) => ({
-        role: item.role || 'assistant',
-        content: typeof item.content === 'string'
-          ? item.content
-          : JSON.stringify(item.content, null, 2),
-        timestamp: item.timestamp
-      }));
+      return data.filter((item: any) =>
+        item.role === 'user' || item.role === 'assistant'
+      ) as TranscriptMessage[];
     }
     return [];
   } catch {
-    // If not JSON, treat as plain text
-    return [{ role: 'assistant', content: transcript }];
+    return [];
   }
+}
+
+// Extract text content from a message
+function getTextContent(content: string | ContentBlock[]): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  return content
+    .filter((block): block is TextBlock => block.type === 'text')
+    .map(block => block.text)
+    .join('\n');
+}
+
+// Get tool uses from a message
+function getToolUses(content: string | ContentBlock[]): ToolUseBlock[] {
+  if (typeof content === 'string') return [];
+  return content.filter((block): block is ToolUseBlock => block.type === 'tool_use');
+}
+
+// Format tool input for display - show the key info inline
+function formatToolSummary(name: string, input: Record<string, unknown>): string {
+  if (name === 'Bash' && input.command) {
+    return String(input.command);
+  }
+  if (name === 'Read' && input.file_path) {
+    return String(input.file_path);
+  }
+  if ((name === 'Write' || name === 'Edit') && input.file_path) {
+    return String(input.file_path);
+  }
+  if (name === 'Grep' && input.pattern) {
+    return `"${input.pattern}"${input.path ? ` in ${input.path}` : ''}`;
+  }
+  if (name === 'Glob' && input.pattern) {
+    return `"${input.pattern}"`;
+  }
+  if (name === 'Task' && input.description) {
+    return String(input.description);
+  }
+  return '';
 }
 
 export default function StopView({ context }: Props) {
@@ -36,11 +93,35 @@ export default function StopView({ context }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [completedAction, setCompletedAction] = useState<'acknowledge' | 'continue'>('acknowledge');
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
     if (!context.transcript) return [];
     return parseTranscript(context.transcript);
   }, [context.transcript]);
+
+  // Auto-scroll to bottom and highlight code on mount
+  useEffect(() => {
+    if (transcriptRef.current) {
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+    }
+    document.querySelectorAll('.transcript-content pre code').forEach((block) => {
+      hljs.highlightElement(block as HTMLElement);
+    });
+  }, [messages]);
+
+  const toggleTool = (id: string) => {
+    setExpandedTools(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const handleAcknowledge = async () => {
     setIsSubmitting(true);
@@ -101,6 +182,69 @@ export default function StopView({ context }: Props) {
     );
   }
 
+  const renderMessage = (msg: TranscriptMessage, idx: number) => {
+    const textContent = getTextContent(msg.content);
+    const toolUses = getToolUses(msg.content);
+    const isUser = msg.role === 'user';
+
+    return (
+      <div key={idx} className={`mb-4 ${isUser ? 'pl-0' : 'pl-0'}`}>
+        {/* User message - cyan prompt style */}
+        {isUser && textContent && (
+          <div className="flex items-start gap-2">
+            <span className="text-cyan-400 font-bold select-none">❯</span>
+            <span className="text-gray-200">{textContent}</span>
+          </div>
+        )}
+
+        {/* Assistant text - pure white like Claude Code */}
+        {!isUser && textContent && (
+          <div
+            className="markdown-content [&_*]:!text-white [&_p]:!text-white [&_li]:!text-white"
+            dangerouslySetInnerHTML={{ __html: marked(textContent) as string }}
+          />
+        )}
+
+        {/* Tool uses - yellow/orange style like Claude Code */}
+        {toolUses.map((tool, toolIdx) => {
+          const toolId = `${idx}-${toolIdx}`;
+          const isExpanded = expandedTools.has(toolId);
+          const summary = formatToolSummary(tool.name, tool.input);
+
+          return (
+            <div key={toolIdx} className="my-2">
+              <button
+                onClick={() => toggleTool(toolId)}
+                className="flex items-center gap-2 text-sm hover:bg-white/5 rounded px-2 py-1 -ml-2 transition-colors w-full text-left group"
+              >
+                <span className="text-yellow-500">●</span>
+                <span className="text-yellow-400 font-medium">{tool.name}</span>
+                {summary && (
+                  <>
+                    <span className="text-gray-600">(</span>
+                    <span className="text-gray-400 font-mono text-xs truncate max-w-md">{summary}</span>
+                    <span className="text-gray-600">)</span>
+                  </>
+                )}
+                <span className="text-gray-700 text-xs ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isExpanded ? '▼' : '▶'}
+                </span>
+              </button>
+
+              {isExpanded && (
+                <div className="ml-4 mt-1 p-3 bg-black/40 rounded border-l-2 border-yellow-500/30 overflow-x-auto">
+                  <pre className="text-xs text-gray-500 font-mono whitespace-pre-wrap">
+                    {JSON.stringify(tool.input, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen p-6">
       {/* Floating orbs */}
@@ -119,33 +263,29 @@ export default function StopView({ context }: Props) {
         {/* Session Transcript - Terminal Style */}
         {messages.length > 0 && (
           <div className="glass mb-6 overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2 bg-black/30 border-b border-white/10">
+            <div className="flex items-center gap-2 px-4 py-2 bg-black/40 border-b border-white/10">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/80" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <div className="w-3 h-3 rounded-full bg-green-500/80" />
               </div>
-              <span className="text-xs text-muted ml-2">Session Transcript</span>
+              <span className="text-xs text-gray-500 ml-2 font-mono">session transcript</span>
+              <span className="text-xs text-gray-700 ml-auto font-mono">{messages.length} msgs</span>
             </div>
-            <div className="bg-black/50 p-4 max-h-[60vh] overflow-y-auto font-mono text-sm">
-              {messages.map((msg, idx) => (
-                <div key={idx} className="mb-3">
-                  <span className={`${
-                    msg.role === 'user' ? 'text-cyan-400' :
-                    msg.role === 'system' ? 'text-yellow-400' : 'text-green-400'
-                  }`}>
-                    {msg.role === 'user' ? '❯ ' : msg.role === 'system' ? '⚙ ' : '◆ '}
-                  </span>
-                  <span className={`text-xs uppercase mr-2 ${
-                    msg.role === 'user' ? 'text-cyan-400' :
-                    msg.role === 'system' ? 'text-yellow-400' : 'text-green-400'
-                  }`}>
-                    [{msg.role}]
-                  </span>
-                  <span className="text-gray-300 whitespace-pre-wrap">{msg.content}</span>
-                </div>
-              ))}
+            <div
+              ref={transcriptRef}
+              className="bg-[#0d1117] p-5 max-h-[60vh] overflow-y-auto font-mono text-sm leading-relaxed"
+            >
+              {messages.map(renderMessage)}
             </div>
+          </div>
+        )}
+
+        {/* No transcript fallback */}
+        {messages.length === 0 && (
+          <div className="glass-subtle p-8 mb-6 text-center">
+            <div className="text-4xl mb-3">📝</div>
+            <p className="text-muted">No session transcript available</p>
           </div>
         )}
 
@@ -191,8 +331,8 @@ export default function StopView({ context }: Props) {
         </div>
 
         {/* Session info footer */}
-        <div className="text-center text-xs text-muted">
-          Session: {context.sessionId || 'N/A'}
+        <div className="text-center text-xs text-muted font-mono">
+          {context.sessionId || 'N/A'}
         </div>
       </div>
     </div>

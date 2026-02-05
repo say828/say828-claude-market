@@ -53,6 +53,7 @@ export interface SubagentStopContext extends Context {
   subagentName: string;
   result?: string;
   sessionId: string;
+  transcript?: string;
 }
 
 export interface PostToolContext extends Context {

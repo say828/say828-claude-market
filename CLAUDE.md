@@ -190,60 +190,62 @@ Remote mode is detected via:
 
 When remote, uses fixed port 18765 for SSH port forwarding and prints URL instead of opening browser.
 
-## Required Testing Before Release
+## Required Testing After Every Code Change
 
-**IMPORTANT: Every code change MUST go through all three testing phases:**
+**CRITICAL: After ANY code change, you MUST build AND replace the binary!**
 
-### 0. Check Cache Version (CRITICAL)
+### Mandatory Build & Replace Workflow
 
-**Always verify you're testing the latest build, NOT cached versions!**
+After every UI or hook code change, run this sequence:
 
 ```bash
-# Check installed plugin cache location
-cat ~/.claude/plugins/installed_plugins.json | grep claude-maestro
+# 1. Build release binaries
+bun run build:release
 
-# The running claude-maestro binary comes from cache, NOT your local build!
-# Cache location: ~/.claude/plugins/cache/claude-maestro/...
+# 2. Replace the installed binary (MANDATORY!)
+cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
+chmod +x ~/.local/bin/claude-maestro
 
-# To test local changes, use the built binary directly (Step 2)
-# OR release and reinstall the plugin (Step 3)
+# 3. Kill any old servers
+pkill -f "stop-server" 2>/dev/null || true
 ```
 
-### 1. Build Test
-```bash
-bun run build
-bun run build:release  # Build platform binaries
-```
-Verify build completes without errors.
+**⚠️ DO NOT skip step 2!** Without replacing the binary, you will test the OLD version.
 
-### 2. Local Binary Test
-Test the built binary directly (bypasses cache):
+### Testing Commands
+
 ```bash
 # Test bash hook
 echo '{"session_id":"test","cwd":"'$(pwd)'","tool_input":{"command":"ls -la"}}' | ./apps/hook/dist/claude-maestro-macos-arm64 bash
 
-# Test stop hook
-echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Task completed"}' | ./apps/hook/dist/claude-maestro-macos-arm64 stop
+# Test stop hook (with transcript)
+echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Task completed","transcript_path":"/tmp/test-transcript.json"}' | ./apps/hook/dist/claude-maestro-macos-arm64 stop
 
-# Test with transcript
-echo '{"session_id":"test","cwd":"'$(pwd)'","stop_hook_reason":"Done","transcript_path":"/path/to/transcript.json"}' | ./apps/hook/dist/claude-maestro-macos-arm64 stop
+# Check server port
+lsof -i -P | grep claude-ma | grep LISTEN
 ```
 
-### 3. Install & Test
-After releasing, install from marketplace and test in a real Claude Code session:
-```bash
-# Update marketplace
-/plugin marketplace update claude-maestro
+### Plugin Release Testing
 
-# Reinstall plugin (clears cache)
+After releasing, reinstall from marketplace:
+```bash
+/plugin marketplace update claude-maestro
 /plugin uninstall claude-maestro@claude-maestro
 /plugin install claude-maestro@claude-maestro
-
-# Test in real session - trigger each hook type
 ```
 
-**DO NOT release without completing all three testing phases.**
-**DO NOT test with cached plugin when verifying local changes.**
+### Zombie Process Cleanup
+
+UE state processes (32 bytes memory) are zombie processes from old corrupted binary.
+They cannot be killed - require system reboot or replacing the binary at `~/.local/bin/claude-maestro`.
+
+```bash
+# Check for zombies
+ps aux | grep claude-maestro | grep UE
+
+# Replace binary to prevent new zombies
+cp apps/hook/dist/claude-maestro-macos-arm64 ~/.local/bin/claude-maestro
+```
 
 ---
 

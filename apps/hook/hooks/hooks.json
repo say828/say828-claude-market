@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" plan'",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;if [ ! -x \"$B\" ];then mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;P=18799;echo \"<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}.s{width:48px;height:48px;border:4px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#888}</style></head><body><div class=c><div class=s></div><h1>Installing claude-maestro...</h1><p>Downloading binary for $OS-$A</p><script>setTimeout(()=>location.reload(),2000)</script></div></body></html>\"|nc -l $P &sleep 0.1;open \"http://localhost:$P\" 2>/dev/null||xdg-open \"http://localhost:$P\" 2>/dev/null;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";fi;exec \"$B\" plan'",
             "timeout": 345600
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" bash'",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;if [ ! -x \"$B\" ];then mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;P=18799;echo \"<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}.s{width:48px;height:48px;border:4px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#888}</style></head><body><div class=c><div class=s></div><h1>Installing claude-maestro...</h1><p>Downloading binary for $OS-$A</p><script>setTimeout(()=>location.reload(),2000)</script></div></body></html>\"|nc -l $P &sleep 0.1;open \"http://localhost:$P\" 2>/dev/null||xdg-open \"http://localhost:$P\" 2>/dev/null;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";fi;exec \"$B\" bash'",
             "timeout": 300
           }
         ]
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" edit'",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;if [ ! -x \"$B\" ];then mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;P=18799;echo \"<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}.s{width:48px;height:48px;border:4px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#888}</style></head><body><div class=c><div class=s></div><h1>Installing claude-maestro...</h1><p>Downloading binary for $OS-$A</p><script>setTimeout(()=>location.reload(),2000)</script></div></body></html>\"|nc -l $P &sleep 0.1;open \"http://localhost:$P\" 2>/dev/null||xdg-open \"http://localhost:$P\" 2>/dev/null;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";fi;exec \"$B\" edit'",
             "timeout": 300
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" question'",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;if [ ! -x \"$B\" ];then mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;P=18799;echo \"<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}.s{width:48px;height:48px;border:4px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#888}</style></head><body><div class=c><div class=s></div><h1>Installing claude-maestro...</h1><p>Downloading binary for $OS-$A</p><script>setTimeout(()=>location.reload(),2000)</script></div></body></html>\"|nc -l $P &sleep 0.1;open \"http://localhost:$P\" 2>/dev/null||xdg-open \"http://localhost:$P\" 2>/dev/null;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";fi;exec \"$B\" question'",
             "timeout": 300
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" stop'",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;if [ ! -x \"$B\" ];then mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;P=18799;echo \"<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}.s{width:48px;height:48px;border:4px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#888}</style></head><body><div class=c><div class=s></div><h1>Installing claude-maestro...</h1><p>Downloading binary for $OS-$A</p><script>setTimeout(()=>location.reload(),2000)</script></div></body></html>\"|nc -l $P &sleep 0.1;open \"http://localhost:$P\" 2>/dev/null||xdg-open \"http://localhost:$P\" 2>/dev/null;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";fi;exec \"$B\" stop'",
             "timeout": 65
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'B=~/.local/bin/claude-maestro;[ -x \"$B\" ]||{ mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";};exec \"$B\" subagent-stop'",
+            "command": "bash -c 'B=~/.local/bin/claude-maestro;if [ ! -x \"$B\" ];then mkdir -p ~/.local/bin;OS=$(uname -s|tr A-Z a-z);A=$(uname -m);[ \"$A\" = x86_64 ]&&A=x64;[ \"$A\" = aarch64 ]&&A=arm64;[ \"$OS\" = darwin ]&&OS=macos;P=18799;echo \"<html><head><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;background:#0a0a0a;color:#e5e5e5;min-height:100vh;display:flex;align-items:center;justify-content:center}.c{text-align:center;padding:2rem}.s{width:48px;height:48px;border:4px solid #333;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1.5rem}@keyframes spin{to{transform:rotate(360deg)}}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#888}</style></head><body><div class=c><div class=s></div><h1>Installing claude-maestro...</h1><p>Downloading binary for $OS-$A</p><script>setTimeout(()=>location.reload(),2000)</script></div></body></html>\"|nc -l $P &sleep 0.1;open \"http://localhost:$P\" 2>/dev/null||xdg-open \"http://localhost:$P\" 2>/dev/null;curl -fsSL \"https://github.com/say828/say828-claude-market/releases/latest/download/claude-maestro-$OS-$A\" -o \"$B\"&&chmod +x \"$B\";fi;exec \"$B\" subagent-stop'",
             "timeout": 65
           }
         ]

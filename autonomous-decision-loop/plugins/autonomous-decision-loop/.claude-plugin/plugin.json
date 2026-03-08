@@ -1,0 +1,13 @@
+{
+  "name": "autonomous-decision-loop",
+  "version": "0.1.0",
+  "description": "Response-conditioned autonomous decision loop that synthesizes the next decision prompt from the final answer.",
+  "author": {
+    "name": "say828",
+    "url": "https://github.com/say828"
+  },
+  "homepage": "https://github.com/say828/autonomous-decision-loop",
+  "repository": "https://github.com/say828/autonomous-decision-loop",
+  "license": "MIT",
+  "keywords": ["claude-code", "codex", "orchestration", "hooks", "tmux", "notify"]
+}

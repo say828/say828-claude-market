@@ -9,13 +9,11 @@ if [[ -f "${ENV_FILE}" ]]; then
   source "${ENV_FILE}"
 fi
 REAL_CODEX="${CODEX_REAL_BIN:-$(which -a codex | awk 'NR==2 {print; exit}')}"
-HUD_SCRIPT="${ROOT_DIR}/codex/bin/codex-hud-pane.sh"
-HUD_POSITION="${CODEX_HUD_POSITION:-right}"
-HUD_SIZE="${CODEX_HUD_SIZE:-35}"
-HUD_SIZE_ARG="${HUD_SIZE}%"
+SOCKET_NAME="${CODEX_INLINE_TMUX_SOCKET:-codex-inline}"
+TMUX_CMD=(tmux -L "${SOCKET_NAME}")
 
 if ! command -v tmux >/dev/null 2>&1; then
-  echo "tmux is required for Codex HUD" >&2
+  echo "tmux is required for Codex ADL" >&2
   exit 1
 fi
 if [[ -z "${REAL_CODEX}" || ! -x "${REAL_CODEX}" ]]; then
@@ -32,7 +30,7 @@ has_yolo_flag() {
 }
 
 build_cmd() {
-  local -a cmd=("${REAL_CODEX}")
+  local -a cmd=("env" "CODEX_INLINE_TMUX_ACTIVE=1" "CODEX_INLINE_TMUX_SESSION=${session}" "${REAL_CODEX}")
   if ! has_yolo_flag "$@"; then
     cmd+=(--yolo)
   fi
@@ -43,23 +41,11 @@ build_cmd() {
 }
 
 slug="$(basename "${WORKDIR}" | tr -c '[:alnum:]' '-')"
-session="codex-hud-${slug}-$(date +%Y%m%d-%H%M%S)-$$"
+session="codex-adl-${slug}-$(date +%Y%m%d-%H%M%S)-$$"
 launch="$(build_cmd "$@")"
 
-tmux new-session -d -s "${session}" -c "${WORKDIR}" "${launch}" >/dev/null
-tmux set-option -t "${session}" mouse on >/dev/null
-tmux set-option -t "${session}" status off >/dev/null
+"${TMUX_CMD[@]}" new-session -d -s "${session}" -c "${WORKDIR}" "${launch}" >/dev/null
+"${TMUX_CMD[@]}" set-option -t "${session}" mouse on >/dev/null
+"${TMUX_CMD[@]}" set-option -t "${session}" status off >/dev/null
 
-main_pane="$(tmux display-message -p -t "${session}:0.0" '#{pane_id}')"
-if [[ -x "${HUD_SCRIPT}" ]]; then
-  if [[ "${HUD_POSITION}" == "bottom" ]]; then
-    tmux split-window -v -t "${main_pane}" -l "${HUD_SIZE_ARG}" -c "${WORKDIR}" \
-      "CODEX_INLINE_WORKDIR='${WORKDIR}' CODEX_HUD_REPO='${WORKDIR}' bash '${HUD_SCRIPT}'" >/dev/null
-  else
-    tmux split-window -h -t "${main_pane}" -l "${HUD_SIZE_ARG}" -c "${WORKDIR}" \
-      "CODEX_INLINE_WORKDIR='${WORKDIR}' CODEX_HUD_REPO='${WORKDIR}' bash '${HUD_SCRIPT}'" >/dev/null
-  fi
-  tmux select-pane -t "${main_pane}" >/dev/null
-fi
-
-exec tmux attach-session -t "${session}"
+exec "${TMUX_CMD[@]}" attach-session -t "${session}"

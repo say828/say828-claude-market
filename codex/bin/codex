@@ -40,14 +40,32 @@ exec_interactive() {
   exec "${REAL_CODEX}" --yolo "$@"
 }
 
-if has_passthrough_subcommand "${1:-}"; then
-  exec "${REAL_CODEX}" "$@"
-fi
-if [[ -n "${TMUX:-}" ]]; then
-  exec_interactive "$@"
-fi
-if [[ ! -t 0 || ! -t 1 ]]; then
-  exec "${REAL_CODEX}" "$@"
+inline_tmux_managed() {
+  [[ "${CODEX_INLINE_TMUX_ACTIVE:-0}" == "1" ]]
+}
+
+normalize_args() {
+  if [[ "${1:-}" == "refer" ]]; then
+    shift
+  fi
+  printf '%s\0' "$@"
+}
+
+declare -a NORMALIZED_ARGS=()
+if [[ "$#" -gt 0 ]]; then
+  while IFS= read -r -d '' arg; do
+    NORMALIZED_ARGS+=("${arg}")
+  done < <(normalize_args "$@")
 fi
 
-exec "${INLINE_TMUX_SCRIPT}" "$@"
+if has_passthrough_subcommand "${NORMALIZED_ARGS[0]:-${1:-}}"; then
+  exec "${REAL_CODEX}" "${NORMALIZED_ARGS[@]}"
+fi
+if [[ ! -t 0 || ! -t 1 ]]; then
+  exec "${REAL_CODEX}" "${NORMALIZED_ARGS[@]}"
+fi
+if inline_tmux_managed; then
+  exec_interactive "${NORMALIZED_ARGS[@]}"
+fi
+
+exec "${INLINE_TMUX_SCRIPT}" "${NORMALIZED_ARGS[@]}"

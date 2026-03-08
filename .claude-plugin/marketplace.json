@@ -13,6 +13,11 @@
       "name": "ship",
       "source": "./plugins/ship",
       "description": "PR 크기 기준 자동 분할과 순차 PR 생성을 자동화하는 Git 워크플로우 도구"
+    },
+    {
+      "name": "autonomous-decision-loop",
+      "source": "./plugins/autonomous-decision-loop",
+      "description": "Response-conditioned autonomous decision loop for Claude Code and Codex"
     }
   ]
 }

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codex HUD"
-  short_description: "Expose hooks and runtime activity to users"
-  default_prompt: "Use $codex-hud to show hook surfaces, runtime state, and recent Codex tool activity now."

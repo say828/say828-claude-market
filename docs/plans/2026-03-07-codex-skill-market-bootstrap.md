@@ -4,6 +4,11 @@
 - Owner: Codex
 - Status: completed
 
+## 2026-03-08 Update
+
+- `codex-hud`는 더 이상 이 레포의 Codex 배포 자산에 포함하지 않는다.
+- 활성 Codex wrapper는 유지하되 배포 대상 skill은 `planning-with-files` 하나로 축소한다.
+
 ## Scope
 
 - In scope:

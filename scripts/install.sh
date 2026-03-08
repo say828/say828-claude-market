@@ -18,8 +18,8 @@ Usage:
 
 Installs:
   - Claude binary + marketplace instructions
-  - Codex skills: planning-with-files, codex-hud
-  - Codex interactive wrapper with tmux HUD auto-attach
+  - Codex skills: planning-with-files
+  - Autonomous Decision Loop for Codex and Claude from say828-agent-market
 
 Options:
   --repo-dir PATH  Use a local repository checkout instead of downloading one
@@ -161,52 +161,52 @@ install_codex_skill() {
   cp -R "${source_dir}" "${target_dir}"
 }
 
-install_codex_wrapper() {
-  local wrapper_dir="${INSTALL_DIR}"
-  local wrapper_target="${wrapper_dir}/codex"
-  local wrapper_source="${MARKET_REPO_DIR}/codex/bin/codex"
-  local inline_source="${MARKET_REPO_DIR}/codex/bin/codex-inline-tmux.sh"
-  local hud_source="${MARKET_REPO_DIR}/codex/bin/codex-hud-pane.sh"
-  local real_codex="${CODEX_REAL_BIN:-$(which -a codex | awk 'NR==1 {print; exit}')}"
-
-  mkdir -p "${wrapper_dir}" "${MARKET_HOME}"
+stage_market_repo() {
+  local source_resolved target_resolved
+  source_resolved="$(readlink -f "${REPO_DIR}" 2>/dev/null || printf '%s' "${REPO_DIR}")"
+  target_resolved="$(readlink -f "${MARKET_REPO_DIR}" 2>/dev/null || printf '%s' "${MARKET_REPO_DIR}")"
+  if [[ "${source_resolved}" == "${target_resolved}" ]]; then
+    return
+  fi
+  mkdir -p "${MARKET_HOME}"
   rm -rf "${MARKET_REPO_DIR}"
   mkdir -p "${MARKET_REPO_DIR}"
   cp -R "${REPO_DIR}/." "${MARKET_REPO_DIR}/"
-  chmod +x "${wrapper_source}" "${inline_source}" "${hud_source}"
+}
 
-  if [[ -e "${wrapper_target}" && ! -L "${wrapper_target}" ]]; then
-    mv "${wrapper_target}" "${wrapper_target}.say828-agent-market-backup"
-  elif [[ -L "${wrapper_target}" ]]; then
-    rm -f "${wrapper_target}"
+install_market_adl() {
+  local -a args=()
+  if [[ "${INSTALL_CLAUDE}" -eq 0 ]]; then
+    args+=(--skip-claude)
   fi
-
-  ln -s "${wrapper_source}" "${wrapper_target}"
-
-  if [[ -n "${real_codex}" ]]; then
-    cat > "${MARKET_HOME}/codex.env" <<EOF
-CODEX_REAL_BIN=${real_codex}
-EOF
+  if [[ "${INSTALL_CODEX}" -eq 0 ]]; then
+    args+=(--skip-codex)
   fi
+  python3 "${MARKET_REPO_DIR}/scripts/install_adl.py" --repo-dir "${MARKET_REPO_DIR}" "${args[@]}"
 }
 
 install_codex_skills() {
-  ensure_repo_checkout
   echo "Installing Codex skills into ${CODEX_SKILLS_DIR}..."
   install_codex_skill "planning-with-files"
-  install_codex_skill "codex-hud"
-  install_codex_wrapper
-  echo "Installed Codex skills: planning-with-files, codex-hud"
-  echo "Installed Codex wrapper: ${INSTALL_DIR}/codex"
+  echo "Installed Codex skills: planning-with-files"
 }
 
 main() {
+  if [[ "${INSTALL_CLAUDE}" -eq 1 || "${INSTALL_CODEX}" -eq 1 ]]; then
+    ensure_repo_checkout
+    stage_market_repo
+  fi
+
   if [[ "${INSTALL_CLAUDE}" -eq 1 ]]; then
     install_claude_binary
   fi
 
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
     install_codex_skills
+  fi
+
+  if [[ "${INSTALL_CLAUDE}" -eq 1 || "${INSTALL_CODEX}" -eq 1 ]]; then
+    install_market_adl
   fi
 
   echo
@@ -218,13 +218,19 @@ main() {
     echo "Install the Claude Code plugin:"
     echo "  /plugin marketplace add ${REPO_SLUG}"
     echo "  /plugin install claude-orchestrator@say828-agent-market"
+    echo "  /plugin install autonomous-decision-loop@say828-agent-market"
     echo "  /plugin install ship@say828-agent-market"
+    echo
+    echo "Claude ADL plugin linked locally from say828-agent-market."
     echo
   fi
   if [[ "${INSTALL_CODEX}" -eq 1 ]]; then
     echo "Installed Codex skills:"
     echo "  - planning-with-files"
-    echo "  - codex-hud"
+    echo
+    echo "Configured Codex ADL:"
+    echo "  - notify -> say828-agent-market/autonomous-decision-loop/runtime/codex_notify.py"
+    echo "  - wrapper -> ~/.local/bin/codex"
     echo
     echo "Use them by name in Codex prompts after restart if needed."
     echo

@@ -1,0 +1,13 @@
+{
+  "name": "say828-autonomous-decision-loop",
+  "owner": {
+    "name": "say828"
+  },
+  "plugins": [
+    {
+      "name": "autonomous-decision-loop",
+      "source": "./plugins/autonomous-decision-loop",
+      "description": "Response-conditioned autonomous decision loop for Claude Code and Codex"
+    }
+  ]
+}

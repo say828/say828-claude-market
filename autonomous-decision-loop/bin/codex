@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+ROOT_DIR="$(cd "$(dirname "${SCRIPT_PATH}")/.." && pwd)"
+if [[ -f "${ROOT_DIR}/.env.install" ]]; then
+  # shellcheck disable=SC1091
+  source "${ROOT_DIR}/.env.install"
+fi
+INLINE_TMUX_SCRIPT="${ROOT_DIR}/bin/codex-inline-tmux.sh"
+
+resolve_real_codex() {
+  local candidate resolved
+  while IFS= read -r candidate; do
+    [[ -n "${candidate}" ]] || continue
+    resolved="$(readlink -f "${candidate}" 2>/dev/null || printf '%s' "${candidate}")"
+    [[ -x "${resolved}" ]] || continue
+    [[ "${resolved}" == "${SCRIPT_PATH}" ]] && continue
+    printf '%s\n' "${resolved}"
+    return 0
+  done < <(
+    {
+      [[ -n "${CODEX_REAL_BIN:-}" ]] && printf '%s\n' "${CODEX_REAL_BIN}"
+      [[ -n "${ADL_REAL_CODEX_BIN:-}" ]] && printf '%s\n' "${ADL_REAL_CODEX_BIN}"
+      which -a codex 2>/dev/null || true
+      printf '%s\n' "/usr/local/bin/codex"
+    } | awk '!seen[$0]++'
+  )
+  return 1
+}
+
+REAL_CODEX="$(resolve_real_codex || true)"
+
+if [[ -z "${REAL_CODEX}" ]]; then
+  echo "real Codex binary not found" >&2
+  exit 1
+fi
+
+has_passthrough_subcommand() {
+  case "${1:-}" in
+    exec|review|login|logout|mcp|mcp-server|app-server|completion|sandbox|debug|apply|resume|fork|cloud|features|help|-h|--help|-V|--version)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+has_yolo_flag() {
+  local arg
+  for arg in "$@"; do
+    [[ "${arg}" == "--yolo" ]] && return 0
+  done
+  return 1
+}
+
+exec_interactive() {
+  if has_yolo_flag "$@"; then
+    exec "${REAL_CODEX}" "$@"
+  fi
+  exec "${REAL_CODEX}" --yolo "$@"
+}
+
+inline_tmux_managed() {
+  [[ "${CODEX_INLINE_TMUX_ACTIVE:-0}" == "1" ]]
+}
+
+if has_passthrough_subcommand "${1:-}"; then
+  exec "${REAL_CODEX}" "$@"
+fi
+if [[ ! -t 0 || ! -t 1 ]]; then
+  exec "${REAL_CODEX}" "$@"
+fi
+if inline_tmux_managed; then
+  exec_interactive "$@"
+fi
+exec "${INLINE_TMUX_SCRIPT}" "$@"
